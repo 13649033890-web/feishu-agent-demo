@@ -40,6 +40,8 @@ import {
   Paperclip,
   PaperPlaneTilt,
   Plus,
+  ShieldCheck,
+  Smiley,
   Sparkle,
   Star,
   Table,
