@@ -11,19 +11,20 @@ import {
   ArrowCounterClockwise,
   ArrowRight,
   ArrowUpRight,
+  ArrowsOut,
   At,
   Bell,
   BookOpen,
   CalendarBlank,
   CaretDown,
   CaretRight,
-  ChartBar,
   ChartLineUp,
   Check,
   CheckCircle,
   CheckSquare,
   ChatCircleDots,
   ClipboardText,
+  ClockCounterClockwise,
   Database,
   DotsThree,
   DotsThreeVertical,
@@ -37,16 +38,16 @@ import {
   Lightning,
   LinkSimple,
   MagnifyingGlass,
-  Microphone,
   NotePencil,
-  Paperclip,
   PaperPlaneTilt,
   Plus,
+  Scissors,
   ShieldCheck,
   Smiley,
   Sparkle,
   Star,
   Table,
+  TextAa,
   TrendUp,
   UsersThree,
   VideoCamera,
@@ -142,7 +143,8 @@ const conversations = [
     title: "公共产品通知",
     preview: "本次功能更新已同步",
     time: "11:10",
-    tone: "team",
+    tone: "label-orange",
+    label: "公共品",
     status: "",
   },
   {
@@ -150,7 +152,8 @@ const conversations = [
     title: "运营协作群",
     preview: "运营团队日常协作与沟通",
     time: "昨天",
-    tone: "data",
+    tone: "label-blue",
+    label: "运营协作",
     status: "",
   },
   {
@@ -166,8 +169,10 @@ const conversations = [
     title: "项目管理助手",
     preview: "请及时跟进任务进度",
     time: "8月26日",
-    tone: "team",
-    status: "",
+    tone: "label-navy",
+    label: "PMO",
+    status: "机器人",
+    tagTone: "orange",
   },
 ];
 
@@ -310,17 +315,18 @@ function AgentAvatar({ small = false }: { small?: boolean }) {
   );
 }
 
-function ConversationAvatar({ tone }: { tone: string }) {
+function ConversationAvatar({ tone, label }: { tone: string; label?: string }) {
   if (tone === "agent") return <AgentAvatar small />;
 
-  const Icon =
-    tone === "doc"
-      ? Article
-      : tone === "data"
-        ? ChartBar
-        : tone === "folder"
-          ? FolderOpen
-          : UsersThree;
+  if (tone.startsWith("label-") && label) {
+    return (
+      <span className={`conversation-avatar conversation-avatar-${tone}`} aria-hidden="true">
+        {label}
+      </span>
+    );
+  }
+
+  const Icon = tone === "doc" ? Article : tone === "folder" ? FolderOpen : UsersThree;
 
   return (
     <span className={`conversation-avatar conversation-avatar-${tone}`} aria-hidden="true">
@@ -583,6 +589,8 @@ function WorkflowCard({
 }
 
 function PersonalWorkspace({
+  showInboxPanel,
+  showWorkflowPanel,
   reviewStarted,
   workflowStarted,
   onStartReview,
@@ -590,6 +598,8 @@ function PersonalWorkspace({
   onOpenBoss,
   onSelectSource,
 }: {
+  showInboxPanel: boolean;
+  showWorkflowPanel: boolean;
   reviewStarted: boolean;
   workflowStarted: boolean;
   onStartReview: () => void;
@@ -599,26 +609,36 @@ function PersonalWorkspace({
 }) {
   return (
     <>
-      <AgentWelcome onOpenBoss={onOpenBoss} />
+      {showInboxPanel && (
+        <>
+          <AgentWelcome onOpenBoss={onOpenBoss} />
 
-      <div className="workspace-intro-row">
-        <div><span className="section-kicker">PERSONAL PM DESK · 08/27</span><h3>今天，智能体先替你收好这些事</h3></div>
-        <ModeSwitch mode="personal" onChange={(next) => { if (next === "boss") onOpenBoss(); }} />
-      </div>
+          <div className="workspace-intro-row">
+            <div><span className="section-kicker">PERSONAL PM DESK · 08/27</span><h3>今天，智能体先替你收好这些事</h3></div>
+            <ModeSwitch mode="personal" onChange={(next) => { if (next === "boss") onOpenBoss(); }} />
+          </div>
 
-      <SourcePills onSelect={onSelectSource} />
-      <InboxCard reviewStarted={reviewStarted} onStartReview={onStartReview} />
+          <SourcePills onSelect={onSelectSource} />
+          <InboxCard reviewStarted={reviewStarted} onStartReview={onStartReview} />
+        </>
+      )}
 
-      <div className="section-heading compact-heading">
-        <div><span className="section-kicker">SKILL ORCHESTRATION</span><h3>从一句需求到一套交付物</h3></div>
-        <Tag tone="neutral"><GitBranch size={13} /> 可追溯工作流</Tag>
-      </div>
-      <WorkflowCard workflowStarted={workflowStarted} onRun={onRunWorkflow} />
+      {showWorkflowPanel && (
+        <>
+          <div className="section-heading compact-heading">
+            <div><span className="section-kicker">SKILL ORCHESTRATION</span><h3>从一句需求到一套交付物</h3></div>
+            <Tag tone="neutral"><GitBranch size={13} /> 可追溯工作流</Tag>
+          </div>
+          <WorkflowCard workflowStarted={workflowStarted} onRun={onRunWorkflow} />
+        </>
+      )}
 
-      <div className="daily-note">
-        <BookOpen size={15} weight="duotone" />
-        <span>晚间复盘会把 AI 可独立完成的任务放进收件箱，明早你只需要审核、修正和做判断。</span>
-      </div>
+      {showInboxPanel && (
+        <div className="daily-note">
+          <BookOpen size={15} weight="duotone" />
+          <span>晚间复盘会把 AI 可独立完成的任务放进收件箱，明早你只需要审核、修正和做判断。</span>
+        </div>
+      )}
     </>
   );
 }
@@ -762,6 +782,14 @@ export default function Home() {
   const [sequenceIndex, setSequenceIndex] = useState(0);
   const [agentNoteExpanded, setAgentNoteExpanded] = useState(false);
   const [quickMenuOpen, setQuickMenuOpen] = useState(false);
+  const [showInboxPanel, setShowInboxPanel] = useState(false);
+  const [showWorkflowPanel, setShowWorkflowPanel] = useState(false);
+  const [showAgentNote, setShowAgentNote] = useState(false);
+
+  const composerTarget =
+    selectedConversation === "agent"
+      ? "张家琴的智能体"
+      : (conversations.find((item) => item.id === selectedConversation)?.title ?? "智能体");
 
   const showToast = (message: string) => {
     setToast(message);
@@ -824,9 +852,37 @@ export default function Home() {
     ]);
   };
 
+  const revealInbox = () => {
+    setShowInboxPanel(true);
+    setReviewStarted(true);
+  };
+
+  const revealWorkflow = () => {
+    setShowWorkflowPanel(true);
+    setWorkflowStarted(true);
+  };
+
+  const revealAgentNote = () => {
+    setShowAgentNote(true);
+    showToast("Agent 待办通知已出现");
+  };
+
+  // Agent 层待办卡片、晚间复盘、工作流三块面板默认不展示，只有点对应入口或
+  // 命中关键词才会出现（页面加载时保持空白会话，贴近真实飞书新会话的样子）。
+  const dashboardTriggers: { keywords: string[]; reveal: () => void }[] = [
+    { keywords: ["晚间复盘", "收件箱"], reveal: revealInbox },
+    { keywords: ["运行工作流", "PM 工作流", "工作流编排"], reveal: revealWorkflow },
+    { keywords: ["待办", "查看待办"], reveal: revealAgentNote },
+  ];
+
   // 隐藏容错机制（DEMO_SCRIPT_ENGINE_SPEC.md 3.2）：双击空输入框，或输入固定词“继续”，
-  // 不依赖关键词是否命中，直接推进到下一个剧本节点，防止现场卡壳。
+  // 不依赖关键词是否命中，直接推进到下一个剧本节点，防止现场卡壳。第一次触发先揭示
+  // Agent 待办卡片，之后再按顺序推进 Skill / 工作流节点。
   const forceAdvance = () => {
+    if (!showAgentNote) {
+      revealAgentNote();
+      return;
+    }
     const node = scriptNodes[sequenceIndex % scriptNodes.length];
     appendScriptResult(node);
     setSequenceIndex((current) => (current + 1) % scriptNodes.length);
@@ -838,6 +894,9 @@ export default function Home() {
     setExpandedCards({});
     setSequenceIndex(0);
     setAgentNoteExpanded(false);
+    setShowInboxPanel(false);
+    setShowWorkflowPanel(false);
+    setShowAgentNote(false);
     setReviewStarted(false);
     setWorkflowStarted(false);
     setSendStatus("idle");
@@ -859,6 +918,15 @@ export default function Home() {
 
     if (text === "继续") {
       forceAdvance();
+      setInput("");
+      setAttachedFile("");
+      return;
+    }
+
+    const dashboardHit = dashboardTriggers.find((entry) => entry.keywords.some((keyword) => text.includes(keyword)));
+    if (dashboardHit) {
+      dashboardHit.reveal();
+      setChatMessages((current) => [...current, { id: `${Date.now()}-user`, role: "user", text }]);
       setInput("");
       setAttachedFile("");
       return;
@@ -891,10 +959,12 @@ export default function Home() {
     <main className="app-frame">
       <aside className="app-rail">
         <button className="profile-orb" aria-label="打开个人菜单" onClick={() => showToast("演示账号：产品经理 · 工作台")}>Z</button>
+        <button className="rail-add" aria-label="新建" onClick={() => showToast("新建：可发起会话、文档或日程")}>
+          <Plus size={15} weight="bold" />
+        </button>
         <button className="rail-search" onClick={() => showToast("搜索已打开：可搜索会话、文档和智能体")} aria-label="搜索">
-          <MagnifyingGlass size={19} weight="bold" />
-          <span>搜索</span>
-          <kbd>⌘ K</kbd>
+          <MagnifyingGlass size={17} weight="bold" />
+          <span>搜索 (Ctrl+K)</span>
         </button>
 
         <nav className="rail-nav" aria-label="应用导航">
@@ -907,8 +977,9 @@ export default function Home() {
                 onClick={() => handleNavClick(item)}
                 aria-current={activeNav === item.id ? "page" : undefined}
               >
-                <span className="rail-icon-wrap"><Icon size={20} weight={activeNav === item.id ? "fill" : "duotone"} />{item.badge && <b>{item.badge}</b>}</span>
-                <span>{item.label}</span>
+                <span className="rail-icon-wrap"><Icon size={18} weight={activeNav === item.id ? "fill" : "regular"} /></span>
+                <span className="rail-item-label">{item.label}</span>
+                {item.badge && <b className="rail-badge">{item.badge}</b>}
               </button>
             );
           })}
@@ -948,9 +1019,9 @@ export default function Home() {
               className={`conversation-item ${selectedConversation === conversation.id ? "selected" : ""}`}
               onClick={() => handleConversationClick(conversation.id)}
             >
-              <ConversationAvatar tone={conversation.tone} />
+              <ConversationAvatar tone={conversation.tone} label={conversation.label} />
               <span className="conversation-copy"><strong>{conversation.title}</strong><span>{conversation.preview}</span></span>
-              <span className="conversation-meta"><time>{conversation.time}</time>{conversation.status && <Tag tone="agent-tag">{conversation.status}</Tag>}</span>
+              <span className="conversation-meta"><time>{conversation.time}</time>{conversation.status && <Tag tone={conversation.tagTone ?? "agent-tag"}>{conversation.status}</Tag>}</span>
             </button>
           ))}
         </div>
@@ -969,19 +1040,19 @@ export default function Home() {
             {selectedConversation === "agent" && (
               <nav className="agent-function-tabs" aria-label="智能体功能">
                 <button className={mode === "personal" ? "active" : ""} onClick={openPersonalMode}><ChatCircleDots size={15} weight="fill" />消息</button>
-                <button onClick={() => { openPersonalMode(); setReviewStarted(true); showToast("晚间复盘计划已生成"); }}><ClipboardText size={15} weight="fill" />晚间复盘</button>
-                <button onClick={() => { openPersonalMode(); setWorkflowStarted(true); showToast("工作流已开始：生成 PRD 草稿"); }}><Sparkle size={15} weight="fill" />工作流</button>
+                <button onClick={() => { openPersonalMode(); revealInbox(); showToast("晚间复盘计划已生成"); }}><ClipboardText size={15} weight="fill" />晚间复盘</button>
+                <button onClick={() => { openPersonalMode(); revealWorkflow(); showToast("工作流已开始：生成 PRD 草稿"); }}><Sparkle size={15} weight="fill" />工作流</button>
                 <button className={mode === "boss" ? "active" : ""} onClick={openBossMode}><ChartLineUp size={15} weight="fill" />老板驾驶舱</button>
                 <button className="agent-tab-more" onClick={() => showToast("更多智能体能力后续接入")} aria-label="更多功能"><Plus size={17} /></button>
               </nav>
             )}
           </div>
           <div className="chat-top-actions">
-            <button className="top-action" aria-label="查看会话信息" onClick={() => showToast("会话信息：演示模式，不连接真实账号")}><Eye size={20} /></button>
-            <button className="top-action" aria-label="搜索会话" onClick={() => showToast("在当前会话中搜索")}><MagnifyingGlass size={20} /></button>
-            <button className="top-action" aria-label="添加成员" onClick={() => showToast("智能体会话暂不添加成员")}><UsersThree size={20} /></button>
-            <button className="top-action" aria-label="编辑会话" onClick={() => showToast("会话名称由演示配置固定")}><NotePencil size={20} /></button>
-            <button className="top-action" aria-label="设置" onClick={() => showToast("智能体设置已打开")}><Gear size={20} /></button>
+            <button className="top-action" aria-label="会话记录" onClick={() => showToast("会话信息：演示模式，不连接真实账号")}><ClockCounterClockwise size={19} /></button>
+            <button className="top-action" aria-label="搜索会话" onClick={() => showToast("在当前会话中搜索")}><MagnifyingGlass size={19} /></button>
+            <button className="top-action" aria-label="添加成员" onClick={() => showToast("智能体会话暂不添加成员")}><UsersThree size={19} /></button>
+            <button className="top-action" aria-label="编辑会话" onClick={() => showToast("会话名称由演示配置固定")}><NotePencil size={19} /></button>
+            <button className="top-action" aria-label="设置" onClick={() => showToast("智能体设置已打开")}><Gear size={19} /></button>
             <button className="top-action" aria-label="重置演示" title="重置演示（用于反复彩排）" onClick={resetDemo}><ArrowCounterClockwise size={19} /></button>
           </div>
         </header>
@@ -994,6 +1065,8 @@ export default function Home() {
               <div className="date-divider"><span>8月27日</span></div>
               {mode === "personal" ? (
                 <PersonalWorkspace
+                  showInboxPanel={showInboxPanel}
+                  showWorkflowPanel={showWorkflowPanel}
                   reviewStarted={reviewStarted}
                   workflowStarted={workflowStarted}
                   onStartReview={() => { setReviewStarted(true); showToast("晚间复盘计划已生成"); }}
@@ -1010,7 +1083,9 @@ export default function Home() {
 
               {mode === "personal" && (
                 <div className="chat-messages" aria-live="polite">
-                  <AgentProactiveNote expanded={agentNoteExpanded} onToggle={() => setAgentNoteExpanded((current) => !current)} />
+                  {showAgentNote && (
+                    <AgentProactiveNote expanded={agentNoteExpanded} onToggle={() => setAgentNoteExpanded((current) => !current)} />
+                  )}
                   {chatMessages.map((message) => (
                     <div className={`message-row ${message.role}`} key={message.id}>
                       {message.role === "assistant" && <AgentAvatar small />}
@@ -1035,13 +1110,6 @@ export default function Home() {
 
         <div className="composer-wrap">
           <div className="composer">
-            <div className="composer-tools">
-              <label className="composer-tool" title="添加附件"><Paperclip size={19} /><input type="file" onChange={handleFilePick} /></label>
-              <button className="composer-tool" title="添加表情" onClick={() => showToast("表情面板已打开")}><Smiley size={19} /></button>
-              <button className="composer-tool" title="提及成员" onClick={() => setInput((current) => `${current}@`)}><At size={19} /></button>
-              <button className="composer-tool" title="插入快捷操作" onClick={() => showToast("快捷操作：复盘 / 查数 / 生成草稿")}><Plus size={19} /></button>
-              <button className="composer-tool" title="语音输入" onClick={() => showToast("演示中暂不录音，直接输入即可")}><Microphone size={19} /></button>
-            </div>
             {mode === "personal" && (
               <div className="quick-instruction-bar">
                 <button className="quick-instruction-toggle" onClick={() => setQuickMenuOpen((current) => !current)} aria-expanded={quickMenuOpen}>
@@ -1061,6 +1129,15 @@ export default function Home() {
                         <span>{node.quickLabel}</span>
                       </button>
                     ))}
+                    {!showAgentNote && (
+                      <button
+                        className="quick-instruction-item"
+                        onClick={() => { revealAgentNote(); setQuickMenuOpen(false); }}
+                      >
+                        <Tag tone="agent-tag">Agent</Tag>
+                        <span>查看待办通知</span>
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
@@ -1071,10 +1148,25 @@ export default function Home() {
                 onChange={(event) => setInput(event.target.value)}
                 onKeyDown={handleInputKeyDown}
                 onDoubleClick={() => { if (!input.trim()) forceAdvance(); }}
-                placeholder={mode === "boss" ? "问问本周业务进展、通过率或异常…" : "把想法、文件或一句需求交给智能体…"}
+                placeholder={`发送给 ${composerTarget}`}
                 aria-label="发送给智能体"
               />
-              <button className={`send-button ${input.trim() ? "ready" : ""}`} onClick={sendMessage} aria-label="发送"><PaperPlaneTilt size={20} weight="fill" /></button>
+            </div>
+            <div className="composer-tools">
+              <div className="composer-tools-left">
+                <button className="composer-tool" title="文本格式" onClick={() => showToast("文本格式面板已打开")}><TextAa size={17} /></button>
+                <button className="composer-tool" title="添加表情" onClick={() => showToast("表情面板已打开")}><Smiley size={17} /></button>
+                <button className="composer-tool" title="提及成员" onClick={() => setInput((current) => `${current}@`)}><At size={17} /></button>
+                <button className="composer-tool" title="更多格式" onClick={() => showToast("更多格式操作")}><Scissors size={16} /><CaretDown size={9} /></button>
+                <label className="composer-tool" title="添加附件"><Plus size={18} /><input type="file" onChange={handleFilePick} /></label>
+              </div>
+              <div className="composer-tools-right">
+                <button className="composer-tool" title="展开" onClick={() => showToast("展开输入框")}><ArrowsOut size={15} /></button>
+                <div className="send-split">
+                  <button className={`send-button ${input.trim() ? "ready" : ""}`} onClick={sendMessage} aria-label="发送"><PaperPlaneTilt size={16} weight="fill" /></button>
+                  <button className="send-caret" aria-label="发送选项" onClick={() => showToast("发送选项：定时发送")}><CaretDown size={10} weight="bold" /></button>
+                </div>
+              </div>
             </div>
             <div className="composer-footer"><span>{attachedFile ? `已添加：${attachedFile}` : "Enter 发送 · Shift + Enter 换行"}</span><span><ShieldCheck size={13} /> 演示模式 · 不会真实读取或发送</span></div>
           </div>

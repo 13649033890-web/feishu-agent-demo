@@ -102,11 +102,29 @@ input:focus-visible {
   content: "";
 }
 
-.rail-search {
+.rail-add {
   display: grid;
-  grid-template-columns: 21px minmax(0, 1fr) auto;
+  width: 26px;
+  height: 26px;
+  margin: 0 0 8px 5px;
+  place-items: center;
+  border: 1px solid rgba(180, 202, 229, 0.6);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.6);
+  color: #6b7c92;
+  transition: 150ms ease;
+}
+
+.rail-add:hover {
+  border-color: #a9c3ea;
+  background: #fff;
+  color: var(--blue);
+}
+
+.rail-search {
+  display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   width: 100%;
   min-height: 43px;
   padding: 0 10px;
@@ -124,17 +142,11 @@ input:focus-visible {
 }
 
 .rail-search span {
-  font-size: 14px;
-}
-
-.rail-search kbd {
-  padding: 3px 5px;
-  border: 1px solid #cfdae9;
-  border-radius: 5px;
-  background: rgba(255, 255, 255, 0.65);
+  overflow: hidden;
   color: #8793a1;
-  font-size: 10px;
-  font-family: inherit;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .rail-nav {
@@ -168,13 +180,16 @@ input:focus-visible {
   box-shadow: 0 4px 13px rgba(86, 126, 178, 0.09);
 }
 
-.rail-item > span:last-child {
+.rail-item-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
   font-size: 14px;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .rail-icon-wrap {
-  position: relative;
   display: grid;
   width: 23px;
   place-items: center;
@@ -185,26 +200,19 @@ input:focus-visible {
   color: var(--blue);
 }
 
-.rail-icon-wrap b {
-  position: absolute;
-  top: -9px;
-  right: -8px;
+.rail-badge {
   display: grid;
-  min-width: 16px;
-  height: 16px;
+  flex: 0 0 auto;
+  min-width: 17px;
+  height: 17px;
   padding: 0 4px;
   place-items: center;
-  border: 2px solid var(--rail);
   border-radius: 10px;
-  background: #f45b60;
+  background: #2f9e8f;
   color: #fff;
   font-size: 9px;
   font-weight: 700;
   line-height: 1;
-}
-
-.rail-item.active .rail-icon-wrap b {
-  border-color: #fff;
 }
 
 .rail-bottom {
@@ -423,6 +431,22 @@ input:focus-visible {
 .conversation-avatar-folder {
   background: linear-gradient(145deg, #efb15c, #df8750);
 }
+
+.conversation-avatar-label-orange,
+.conversation-avatar-label-blue,
+.conversation-avatar-label-navy {
+  border-radius: 9px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  text-align: center;
+  padding: 0 3px;
+}
+
+.conversation-avatar-label-orange { background: #ee8a3c; }
+.conversation-avatar-label-blue { background: #4d8ef0; }
+.conversation-avatar-label-navy { background: #33465f; }
 
 .agent-avatar {
   position: relative;
@@ -920,6 +944,11 @@ input:focus-visible {
 .tag-orange {
   background: #fff0e1;
   color: #c97a34;
+}
+
+.tag-agent-tag {
+  background: #eee6ff;
+  color: #7950ca;
 }
 
 .intake-stats {
@@ -1756,23 +1785,22 @@ input:focus-visible {
 }
 
 .message-bubble {
-  padding: 10px 12px;
-  border-radius: 12px;
-  background: #fff;
-  color: #536274;
-  font-size: 11px;
-  line-height: 1.55;
-  box-shadow: 0 4px 14px rgba(39, 66, 105, 0.06);
+  padding: 9px 12px;
+  border-radius: 10px;
+  background: #f0f1f4;
+  color: #26282b;
+  font-size: 12px;
+  line-height: 1.6;
 }
 
 .message-row.user .message-bubble {
-  border-radius: 12px 12px 3px 12px;
-  background: #e8f0ff;
-  color: #47659b;
+  border-radius: 10px 10px 3px 10px;
+  background: #d5e6ff;
+  color: #1c2c42;
 }
 
 .message-row.assistant .message-bubble {
-  border-radius: 3px 12px 12px 12px;
+  border-radius: 3px 10px 10px 10px;
 }
 
 .message-detail {
@@ -1782,7 +1810,7 @@ input:focus-visible {
 }
 
 .message-bubble-card {
-  border-radius: 3px 12px 12px 12px;
+  border-radius: 3px 10px 10px 10px;
 }
 
 /* 脚本化演示引擎：Skill / 工作流 结果卡片，折叠摘要 + 点开展开详情 */
@@ -1791,9 +1819,8 @@ input:focus-visible {
   min-width: 280px;
   overflow: hidden;
   border: 1px solid var(--line-strong);
-  border-radius: 12px;
+  border-radius: 10px;
   background: #fff;
-  box-shadow: 0 4px 14px rgba(39, 66, 105, 0.06);
 }
 
 .script-card-summary {
@@ -1922,13 +1949,12 @@ input:focus-visible {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 12px;
-  border-radius: 3px 12px 12px 12px;
-  background: #fff;
-  color: #344356;
-  font-size: 11.5px;
+  padding: 9px 12px;
+  border-radius: 3px 10px 10px 10px;
+  background: #f0f1f4;
+  color: #26282b;
+  font-size: 12px;
   font-weight: 600;
-  box-shadow: 0 4px 14px rgba(39, 66, 105, 0.06);
 }
 
 .agent-note-detail {
@@ -1942,7 +1968,7 @@ input:focus-visible {
 /* 快捷指令：点击填入输入框文本，仍需手动点发送，避免现场打字出错 */
 .quick-instruction-bar {
   position: relative;
-  margin: 6px 2px 0;
+  margin: 2px 2px 6px;
 }
 
 .quick-instruction-toggle {
@@ -2017,18 +2043,34 @@ input:focus-visible {
 .composer-tools {
   display: flex;
   align-items: center;
-  gap: 2px;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 4px;
+}
+
+.composer-tools-left,
+.composer-tools-right {
+  display: flex;
+  align-items: center;
+  gap: 1px;
 }
 
 .composer-tool {
-  display: grid;
-  width: 29px;
-  height: 29px;
-  place-items: center;
-  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  width: 27px;
+  height: 27px;
+  justify-content: center;
+  border-radius: 7px;
   background: transparent;
   color: #7f8d9d;
   transition: 150ms ease;
+}
+
+.composer-tool:has(svg:nth-child(2)) {
+  width: auto;
+  padding: 0 4px;
 }
 
 .composer-tool:hover {
@@ -2041,43 +2083,56 @@ input:focus-visible {
 }
 
 .composer-input-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 2px 2px 0 5px;
+  padding: 5px 5px 0;
 }
 
 .composer-input-row input {
-  min-width: 0;
-  height: 39px;
-  flex: 1;
+  width: 100%;
+  height: 30px;
   border: 0;
   outline: 0;
   background: transparent;
-  color: #344356;
-  font-size: 12px;
+  color: #26282b;
+  font-size: 13px;
 }
 
 .composer-input-row input::placeholder {
   color: #a5afba;
 }
 
+.send-split {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
 .send-button {
   display: grid;
-  width: 34px;
-  height: 34px;
+  width: 26px;
+  height: 26px;
   flex: 0 0 auto;
   place-items: center;
-  border-radius: 10px;
-  background: #e1e8f1;
-  color: #9aa7b5;
+  border-radius: 7px;
+  background: transparent;
+  color: #b6bfc9;
   transition: 150ms ease;
 }
 
 .send-button.ready {
-  background: var(--blue);
-  color: #fff;
-  box-shadow: 0 5px 12px rgba(51, 112, 255, 0.2);
+  color: var(--blue);
+}
+
+.send-caret {
+  display: grid;
+  width: 16px;
+  height: 26px;
+  flex: 0 0 auto;
+  place-items: center;
+  color: #b6bfc9;
+}
+
+.send-caret:hover {
+  color: var(--blue);
 }
 
 .composer-footer {
@@ -2165,17 +2220,16 @@ input:focus-visible {
   }
 
   .rail-search {
-    grid-template-columns: 1fr;
+    justify-content: center;
     width: 45px;
     height: 44px;
     min-height: 44px;
     padding: 0;
-    place-items: center;
   }
 
   .rail-search span,
-  .rail-search kbd,
-  .rail-item > span:last-child {
+  .rail-item-label,
+  .rail-badge {
     display: none;
   }
 
@@ -2403,10 +2457,16 @@ input:focus-visible {
 .profile-orb {
   width: 31px;
   height: 31px;
-  margin: 1px 0 12px 2px;
+  margin: 1px 0 7px 2px;
 }
 
 .profile-orb::after { display: none; }
+
+.rail-add {
+  width: 22px;
+  height: 22px;
+  margin: 0 0 9px 6px;
+}
 
 .rail-search {
   min-height: 34px;
@@ -2417,7 +2477,6 @@ input:focus-visible {
 }
 
 .rail-search span { font-size: 12px; }
-.rail-search kbd { font-size: 9px; border: 0; background: transparent; padding: 0; }
 .rail-nav { gap: 1px; margin-top: 10px; }
 
 .rail-item {
@@ -2429,6 +2488,7 @@ input:focus-visible {
 }
 
 .rail-item.active { background: #fff; color: #253753; }
+.rail-item.active .rail-badge { background: #2f9e8f; }
 .rail-icon-wrap { width: 17px; height: 17px; }
 .rail-icon-wrap svg { width: 17px; height: 17px; }
 .rail-bottom { border-top: 0; padding-top: 5px; }
@@ -2637,4 +2697,43 @@ input:focus-visible {
 .chat-shell {
   position: relative;
   z-index: 2;
+}
+
+/* Card-based shell: the nav rail sits directly on the page background; the
+   conversation list and the chat pane are independent floating white cards
+   with a visible gap between them, matching the native Feishu desktop app. */
+.app-frame {
+  gap: 10px;
+  padding: 10px 10px 10px 0;
+  background: linear-gradient(160deg, #eef3fb 0%, #e3ebf7 100%);
+}
+
+.app-rail {
+  background: transparent;
+  border-right: 0;
+}
+
+.conversation-pane {
+  border-right: 0;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(30, 58, 105, 0.09);
+}
+
+.chat-shell {
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(30, 58, 105, 0.09);
+}
+
+@media (max-width: 700px) {
+  .app-frame {
+    gap: 0;
+    padding: 0;
+    background: #fff;
+  }
+
+  .conversation-pane,
+  .chat-shell {
+    border-radius: 0;
+    box-shadow: none;
+  }
 }
