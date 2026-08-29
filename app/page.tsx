@@ -559,6 +559,9 @@ function ConversationPreview({ onBack }: { onBack: () => void }) {
 }
 
 export default function Home() {
+  const leftShellPath = window.location.pathname.startsWith("/feishu-agent-demo")
+    ? "/feishu-agent-demo/feishu-left-shell.png"
+    : "/feishu-left-shell.png";
   const [activeNav, setActiveNav] = useState<NavId>("messages");
   const [selectedConversation, setSelectedConversation] = useState("agent");
   const [mode, setMode] = useState<Mode>("personal");
@@ -643,6 +646,9 @@ export default function Home() {
 
   return (
     <main className="app-frame">
+      <div className="static-left-shell" aria-hidden="true">
+        <img src={leftShellPath} alt="" />
+      </div>
       <aside className="app-rail">
         <button className="profile-orb" aria-label="打开个人菜单" onClick={() => showToast("演示账号：产品经理 · 工作台")}>Z</button>
         <button className="rail-search" onClick={() => showToast("搜索已打开：可搜索会话、文档和智能体")} aria-label="搜索">
@@ -714,10 +720,21 @@ export default function Home() {
 
       <section className="chat-shell">
         <header className="chat-topbar">
-          <div className="chat-title-block">
-            <ConversationAvatar tone={selectedConversation === "agent" ? "agent" : "team"} />
-            <div><h1>{selectedConversation === "agent" ? "爆炒空心菜的飞书 CLI" : conversations.find((item) => item.id === selectedConversation)?.title}</h1><p>{selectedConversation === "agent" ? "智能体 · 在线" : "飞书会话 · 脱敏演示"}</p></div>
-            {selectedConversation === "agent" && <Tag tone="agent-tag">智能体</Tag>}
+          <div className="agent-header-content">
+            <div className="chat-title-block">
+              <ConversationAvatar tone={selectedConversation === "agent" ? "agent" : "team"} />
+              <div><h1>{selectedConversation === "agent" ? "张家琴的智能体" : conversations.find((item) => item.id === selectedConversation)?.title}</h1><p>{selectedConversation === "agent" ? "智能体 · 在线" : "飞书会话 · 脱敏演示"}</p></div>
+              {selectedConversation === "agent" && <Tag tone="agent-tag">智能体</Tag>}
+            </div>
+            {selectedConversation === "agent" && (
+              <nav className="agent-function-tabs" aria-label="智能体功能">
+                <button className={mode === "personal" ? "active" : ""} onClick={openPersonalMode}><ChatCircleDots size={15} weight="fill" />消息</button>
+                <button onClick={() => { openPersonalMode(); setReviewStarted(true); showToast("晚间复盘计划已生成"); }}><ClipboardText size={15} weight="fill" />晚间复盘</button>
+                <button onClick={() => { openPersonalMode(); setWorkflowStarted(true); showToast("工作流已开始：生成 PRD 草稿"); }}><Sparkle size={15} weight="fill" />工作流</button>
+                <button className={mode === "boss" ? "active" : ""} onClick={openBossMode}><ChartLineUp size={15} weight="fill" />老板驾驶舱</button>
+                <button className="agent-tab-more" onClick={() => showToast("更多智能体能力后续接入")} aria-label="更多功能"><Plus size={17} /></button>
+              </nav>
+            )}
           </div>
           <div className="chat-top-actions">
             <button className="top-action" aria-label="查看会话信息" onClick={() => showToast("会话信息：演示模式，不连接真实账号")}><Eye size={20} /></button>

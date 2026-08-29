@@ -2338,3 +2338,117 @@ input:focus-visible {
   .app-frame { grid-template-columns: 126px 260px minmax(0, 1fr); }
   .rail-item { font-size: 12px; }
 }
+
+/* Agent conversation header: follows the native Feishu agent pattern. */
+.chat-shell { grid-template-rows: 103px minmax(0, 1fr) auto; }
+
+.chat-topbar {
+  align-items: stretch;
+  padding: 0 20px;
+}
+
+.agent-header-content {
+  min-width: 0;
+  flex: 1;
+  display: grid;
+  grid-template-rows: 56px 40px;
+}
+
+.agent-header-content .chat-title-block {
+  min-height: 0;
+  align-self: center;
+}
+
+.agent-header-content .chat-title-block h1 {
+  font-size: 18px;
+  font-weight: 760;
+}
+
+.agent-header-content .chat-title-block p {
+  display: none;
+}
+
+.chat-top-actions {
+  align-self: flex-start;
+  margin-top: 14px;
+}
+
+.agent-function-tabs {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+
+.agent-function-tabs button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 28px;
+  padding: 0 9px;
+  border-radius: 7px;
+  background: transparent;
+  color: #59697c;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.agent-function-tabs button:hover,
+.agent-function-tabs button.active {
+  color: #2865da;
+  background: #edf3ff;
+}
+
+.agent-function-tabs .agent-tab-more {
+  padding: 0 5px;
+  color: #7d8998;
+}
+
+@media (max-width: 980px) {
+  .chat-shell { grid-template-rows: 93px minmax(0, 1fr) auto; }
+  .agent-header-content { grid-template-rows: 51px 35px; }
+  .agent-function-tabs { gap: 1px; overflow: hidden; }
+  .agent-function-tabs button { padding: 0 6px; font-size: 10px; }
+}
+
+/* The untouched left half is rendered from the user's redacted Feishu screenshot.
+   Invisible semantic controls remain underneath so navigation and conversations stay usable. */
+.app-frame {
+  position: relative;
+  grid-template-columns: 12.03vw 24.69vw minmax(0, 1fr);
+}
+
+.static-left-shell {
+  position: absolute;
+  z-index: 4;
+  inset: 0 auto 0 0;
+  width: 36.72vw;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.static-left-shell img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  user-select: none;
+}
+
+.app-rail,
+.conversation-pane {
+  position: relative;
+  z-index: 1;
+  opacity: 0;
+}
+
+.chat-shell {
+  position: relative;
+  z-index: 2;
+}
+
+@media (max-width: 980px) {
+  .app-frame {
+    grid-template-columns: 12.03vw 24.69vw minmax(0, 1fr);
+  }
+}
