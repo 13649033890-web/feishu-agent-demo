@@ -41,6 +41,7 @@ import {
   NotePencil,
   PaperPlaneTilt,
   Plus,
+  Robot,
   Scissors,
   ShieldCheck,
   Smiley,
@@ -68,7 +69,7 @@ type NavId =
 type MessageRole = "user" | "assistant";
 type SendStatus = "idle" | "preview" | "confirmed";
 
-type ScriptStage = "skill" | "workflow";
+type ScriptStage = "skill" | "workflow" | "agent";
 
 type ScriptDetail =
   | { kind: "table"; headers: string[]; rows: string[][]; note?: string }
@@ -81,6 +82,8 @@ type ScriptCardPayload = {
   stageLabel: string;
   summary: string;
   detail: ScriptDetail;
+  invoking?: boolean;
+  invokeName?: string;
 };
 
 type ScriptNode = {
@@ -224,7 +227,8 @@ const sourceLabels = [
 
 // 脚本化演示引擎的触发映射表（DEMO_SCRIPT_ENGINE_SPEC.md 2.2 节）。
 // 只改这里就能调整关键词和文案，不需要碰下面的匹配/渲染逻辑。
-const scriptNodes: ScriptNode[] = [
+// Skill 进快捷指令 tab；工作流 + Agent 进任务 tab（见 composer 里的两个 tab）。
+const skillNodes: ScriptNode[] = [
   {
     id: "skill-ab-test",
     stage: "skill",
@@ -282,24 +286,82 @@ const scriptNodes: ScriptNode[] = [
       ],
     },
   },
+];
+
+const taskNodes: ScriptNode[] = [
   {
-    id: "workflow-xiaohongshu",
+    id: "workflow-query-fetch",
     stage: "workflow",
     stageLabel: "工作流",
-    quickLabel: "民宿动态整理",
-    sampleInput: "帮我整理一下最近的海淀民宿动态",
-    keywords: ["海淀民宿", "民宿动态", "帖子整理"],
-    summary: "民宿动态整理工作流已完成",
+    quickLabel: "今日query抓取",
+    sampleInput: "帮我抓取一下今天的搜索 query",
+    keywords: ["今日query抓取", "query抓取", "抓取query", "搜索query"],
+    summary: "今日 query 抓取工作流已完成",
     detail: {
       kind: "steps",
       steps: [
-        { title: "抓取来源", note: "公开笔记 · 站内搜索关键词“海淀民宿”" },
-        { title: "筛选逻辑", note: "近 7 天发布 · 互动量前 30% · 去重相似标题" },
-        { title: "结果摘要", note: "整理出 5 条值得关注的动态，2 条新开业、3 条体验测评" },
+        { title: "抓取来源", note: "站内搜索日志 · 今日 00:00 至当前" },
+        { title: "筛选逻辑", note: "按搜索量降序 · 过滤测试与内部账号 · 归并同义 query" },
+        { title: "结果摘要", note: "共抓取 128 条有效 query，Top 5 已生成榜单，3 条为新增热搜" },
+      ],
+    },
+  },
+  {
+    id: "agent-daily-report",
+    stage: "agent",
+    stageLabel: "Agent",
+    quickLabel: "查看今日日报",
+    sampleInput: "帮我看下今日日报",
+    keywords: ["今日日报", "查看日报", "日报"],
+    summary: "今日日报已生成",
+    detail: {
+      kind: "outline",
+      items: [
+        "项目进展：FD-430797 审批通过，已新建 PMO 项目群",
+        "日程：晚间 19:30-21:30 团队聚会，无会议冲突",
+        "未处理待办：2 条待推进、1 条待他人回复",
+        "今日规划：已按优先级排好 4 项待办",
+      ],
+    },
+  },
+  {
+    id: "agent-weekly-report",
+    stage: "agent",
+    stageLabel: "Agent",
+    quickLabel: "完成本周周报",
+    sampleInput: "帮我写一下本周周报",
+    keywords: ["本周周报", "写周报", "周报"],
+    summary: "本周周报初稿已生成",
+    detail: {
+      kind: "outline",
+      items: [
+        "本周进展摘要：3 个项目关键节点已完成",
+        "关键指标变化：核心转化率环比 +2.3%",
+        "风险与待办：2 项待跟进事项已标注负责人",
+        "下周计划：优先推进 FD-430797 与 PRD 评审",
+      ],
+    },
+  },
+  {
+    id: "agent-prd-analysis",
+    stage: "agent",
+    stageLabel: "Agent",
+    quickLabel: "新建需求分析",
+    sampleInput: "帮我新建一份需求分析",
+    keywords: ["新建需求分析", "需求分析"],
+    summary: "需求分析文档已创建",
+    detail: {
+      kind: "steps",
+      steps: [
+        { title: "背景梳理", note: "整理现状数据与用户反馈来源" },
+        { title: "方案草拟", note: "给出 2 个候选方案与取舍建议" },
+        { title: "下一步", note: "已生成待评审 PRD 草稿，等待你确认" },
       ],
     },
   },
 ];
+
+const scriptNodes: ScriptNode[] = [...skillNodes, ...taskNodes];
 
 function matchScriptNode(text: string): ScriptNode | undefined {
   return scriptNodes.find((node) => node.keywords.some((keyword) => text.includes(keyword)));
@@ -352,6 +414,18 @@ function SourcePills({ onSelect }: { onSelect: (label: string) => void }) {
   );
 }
 
+const stageIcons: Record<ScriptStage, ElementType> = {
+  skill: Lightning,
+  workflow: GitBranch,
+  agent: Robot,
+};
+
+const stageTagTone: Record<ScriptStage, string> = {
+  skill: "blue",
+  workflow: "purple",
+  agent: "agent-tag",
+};
+
 function ScriptResultCard({
   card,
   expanded,
@@ -361,14 +435,27 @@ function ScriptResultCard({
   expanded: boolean;
   onToggle: () => void;
 }) {
+  const StageIcon = stageIcons[card.stage];
   return (
-    <div className={`script-card script-card-${card.stage}`}>
-      <button className="script-card-summary" onClick={onToggle} aria-expanded={expanded}>
-        <Tag tone={card.stage === "skill" ? "blue" : "purple"}>{card.stageLabel}</Tag>
-        <span className="script-card-summary-text">{card.summary}</span>
-        <CaretRight className={`script-card-caret ${expanded ? "open" : ""}`} size={13} />
+    <div className={`script-card script-card-${card.stage} ${card.invoking ? "script-card-invoking" : ""}`}>
+      <button
+        className="script-card-summary"
+        onClick={card.invoking ? undefined : onToggle}
+        aria-expanded={expanded}
+        aria-busy={card.invoking}
+      >
+        <span className="script-card-stage-icon"><StageIcon size={13} weight="fill" /></span>
+        <Tag tone={stageTagTone[card.stage]}>{card.stageLabel}</Tag>
+        <span className="script-card-summary-text">
+          {card.invoking ? `正在调用 ${card.invokeName ?? card.stageLabel}…` : card.summary}
+        </span>
+        {card.invoking ? (
+          <span className="script-card-spinner" aria-hidden="true" />
+        ) : (
+          <CaretRight className={`script-card-caret ${expanded ? "open" : ""}`} size={13} />
+        )}
       </button>
-      {expanded && (
+      {!card.invoking && expanded && (
         <div className="script-card-detail">
           {card.detail.kind === "table" && (
             <>
@@ -454,7 +541,15 @@ function ModeSwitch({ mode, onChange }: { mode: Mode; onChange: (mode: Mode) => 
   );
 }
 
-function AgentWelcome({ onOpenBoss }: { onOpenBoss: () => void }) {
+function AgentWelcome({
+  onOpenBoss,
+  onOpenSkills,
+  onQuickTip,
+}: {
+  onOpenBoss: () => void;
+  onOpenSkills: () => void;
+  onQuickTip: () => void;
+}) {
   return (
     <section className="agent-welcome">
       <div className="welcome-avatar-wrap">
@@ -462,18 +557,20 @@ function AgentWelcome({ onOpenBoss }: { onOpenBoss: () => void }) {
         <span className="welcome-live-dot" />
       </div>
       <div className="welcome-copy">
-        <div className="eyebrow">
-          <span className="eyebrow-dot" />
-          演示环境 · Codex + Claude 已接入
-        </div>
-        <h2>晚上整理，早上只做判断</h2>
+        <h2><span className="welcome-wave" aria-hidden="true">👋</span> Hi <span className="welcome-mention">@张家琴zhang</span>，我来上班啦！</h2>
         <p>
-          把散落在飞书里的资料交给我。我会先整理成可追溯的知识和草稿，涉及发送、改写或正式更新时，再交给你确认。
+          从今天起，你在飞书里多了一位随叫随到的 AI 同事：常规工作直接交给我，遇到复杂需求，我还能拉上 Skill 专家和工作流一起推进。
         </p>
-        <div className="welcome-trust">
-          <span><ShieldCheck size={14} weight="duotone" /> 原始资料不覆盖</span>
-          <span><GitBranch size={14} weight="duotone" /> 版本可回溯</span>
-          <button onClick={onOpenBoss}>切换老板视角 <ArrowUpRight size={13} /></button>
+        <ol className="welcome-feature-list">
+          <li><strong>日常工作交给我：</strong>取数、PRD 大纲、AB 实验分析，一句话直接开工</li>
+          <li><strong>多步任务自动编排：</strong>“今日 query 抓取”这类工作流，一次运行到底</li>
+          <li><strong>重要动态我留意：</strong>晚间自动整理收件箱，早上你只需要审核判断</li>
+          <li><strong>专属 Agent 随叫随到：</strong>日报、周报、需求分析，一键召唤</li>
+        </ol>
+        <div className="welcome-actions">
+          <button onClick={onOpenSkills}>看看能帮你做什么</button>
+          <button onClick={onQuickTip}>零门槛上手</button>
+          <button className="welcome-action-primary" onClick={onOpenBoss}>一键召唤专家 <ArrowUpRight size={13} /></button>
         </div>
       </div>
     </section>
@@ -596,6 +693,8 @@ function PersonalWorkspace({
   onStartReview,
   onRunWorkflow,
   onOpenBoss,
+  onOpenSkills,
+  onQuickTip,
   onSelectSource,
 }: {
   showInboxPanel: boolean;
@@ -605,14 +704,16 @@ function PersonalWorkspace({
   onStartReview: () => void;
   onRunWorkflow: () => void;
   onOpenBoss: () => void;
+  onOpenSkills: () => void;
+  onQuickTip: () => void;
   onSelectSource: (label: string) => void;
 }) {
   return (
     <>
+      <AgentWelcome onOpenBoss={onOpenBoss} onOpenSkills={onOpenSkills} onQuickTip={onQuickTip} />
+
       {showInboxPanel && (
         <>
-          <AgentWelcome onOpenBoss={onOpenBoss} />
-
           <div className="workspace-intro-row">
             <div><span className="section-kicker">PERSONAL PM DESK · 08/27</span><h3>今天，智能体先替你收好这些事</h3></div>
             <ModeSwitch mode="personal" onChange={(next) => { if (next === "boss") onOpenBoss(); }} />
@@ -781,7 +882,7 @@ export default function Home() {
   const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>({});
   const [sequenceIndex, setSequenceIndex] = useState(0);
   const [agentNoteExpanded, setAgentNoteExpanded] = useState(false);
-  const [quickMenuOpen, setQuickMenuOpen] = useState(false);
+  const [activeQuickTab, setActiveQuickTab] = useState<"skill" | "task" | null>(null);
   const [showInboxPanel, setShowInboxPanel] = useState(false);
   const [showWorkflowPanel, setShowWorkflowPanel] = useState(false);
   const [showAgentNote, setShowAgentNote] = useState(false);
@@ -808,10 +909,28 @@ export default function Home() {
     setSelectedConversation("agent");
   };
 
+  const clearAgentConversation = () => {
+    setChatMessages([]);
+    setExpandedCards({});
+    setSequenceIndex(0);
+    setAgentNoteExpanded(false);
+    setActiveQuickTab(null);
+    setShowInboxPanel(false);
+    setShowWorkflowPanel(false);
+    setShowAgentNote(false);
+    setReviewStarted(false);
+    setWorkflowStarted(false);
+    setSendStatus("idle");
+    setInput("");
+    setAttachedFile("");
+  };
+
   const handleNavClick = (item: NavItem) => {
     setActiveNav(item.id);
     if (item.id === "messages") {
       openPersonalMode();
+      clearAgentConversation();
+      showToast("会话已清空，可以重新开始演示");
       return;
     }
     if (item.id === "tables") {
@@ -837,19 +956,48 @@ export default function Home() {
     setExpandedCards((current) => ({ ...current, [id]: !current[id] }));
   };
 
-  const appendScriptResult = (node: ScriptNode, userText?: string) => {
+  // 点击快捷指令 / 命中关键词时，先弹出“正在调用 xxx”的调用卡片（参照 Claude 的工具调用样式），
+  // 短暂延迟后再切换为结果卡片，而不是把文案直接写死成一句话。
+  const runScriptedInvocation = (node: ScriptNode, userText?: string) => {
+    setActiveQuickTab(null);
     const stamp = Date.now();
+    const userId = `${stamp}-user`;
     const assistantId = `${stamp}-assistant`;
     setChatMessages((current) => [
       ...current,
-      ...(userText ? [{ id: `${stamp}-user`, role: "user" as MessageRole, text: userText }] : []),
+      { id: userId, role: "user" as MessageRole, text: userText ?? node.sampleInput },
       {
         id: assistantId,
         role: "assistant" as MessageRole,
-        text: node.stage === "skill" ? "已收到，处理完成：" : "工作流已执行完成：",
-        card: { nodeId: node.id, stage: node.stage, stageLabel: node.stageLabel, summary: node.summary, detail: node.detail },
+        text: node.stage === "skill" ? "正在调用 Skill…" : node.stage === "workflow" ? "正在执行工作流…" : "正在调用 Agent…",
+        card: {
+          nodeId: node.id,
+          stage: node.stage,
+          stageLabel: node.stageLabel,
+          summary: node.summary,
+          detail: node.detail,
+          invoking: true,
+          invokeName: node.quickLabel,
+        },
       },
     ]);
+
+    window.setTimeout(() => {
+      setChatMessages((current) =>
+        current.map((message) =>
+          message.id === assistantId && message.card
+            ? {
+                ...message,
+                text: node.stage === "skill" ? "已收到，处理完成：" : node.stage === "workflow" ? "工作流已执行完成：" : "已完成：",
+                card: { ...message.card, invoking: false },
+              }
+            : message
+        )
+      );
+    }, 900);
+
+    const nodeIndex = scriptNodes.findIndex((item) => item.id === node.id);
+    if (nodeIndex >= 0) setSequenceIndex((nodeIndex + 1) % scriptNodes.length);
   };
 
   const revealInbox = () => {
@@ -884,8 +1032,7 @@ export default function Home() {
       return;
     }
     const node = scriptNodes[sequenceIndex % scriptNodes.length];
-    appendScriptResult(node);
-    setSequenceIndex((current) => (current + 1) % scriptNodes.length);
+    runScriptedInvocation(node);
     showToast("已推进到下一个演示节点");
   };
 
@@ -905,7 +1052,7 @@ export default function Home() {
     setMode("personal");
     setActiveNav("messages");
     setSelectedConversation("agent");
-    setQuickMenuOpen(false);
+    setActiveQuickTab(null);
     showToast("演示已重置，可以重新彩排");
   };
 
@@ -934,9 +1081,7 @@ export default function Home() {
 
     const node = matchScriptNode(text);
     if (node) {
-      appendScriptResult(node, text);
-      const nodeIndex = scriptNodes.findIndex((item) => item.id === node.id);
-      setSequenceIndex((nodeIndex + 1) % scriptNodes.length);
+      runScriptedInvocation(node, text);
     } else {
       setChatMessages((current) => [
         ...current,
@@ -1072,6 +1217,8 @@ export default function Home() {
                   onStartReview={() => { setReviewStarted(true); showToast("晚间复盘计划已生成"); }}
                   onRunWorkflow={() => { setWorkflowStarted(true); showToast("工作流开始运行：先生成 PRD 草稿"); }}
                   onOpenBoss={openBossMode}
+                  onOpenSkills={() => setActiveQuickTab("skill")}
+                  onQuickTip={() => showToast("小技巧：输入关键词或点“快捷指令 / 任务”都能直接触发")}
                   onSelectSource={(label) => showToast(`${label}：演示中显示已授权来源`)}
                 />
               ) : (
@@ -1112,32 +1259,52 @@ export default function Home() {
           <div className="composer">
             {mode === "personal" && (
               <div className="quick-instruction-bar">
-                <button className="quick-instruction-toggle" onClick={() => setQuickMenuOpen((current) => !current)} aria-expanded={quickMenuOpen}>
-                  <Lightning size={13} weight="fill" />
-                  快捷指令
-                  <CaretDown size={11} className={quickMenuOpen ? "open" : ""} />
-                </button>
-                {quickMenuOpen && (
+                <div className="quick-tab-row">
+                  <button
+                    className={`quick-instruction-toggle ${activeQuickTab === "skill" ? "active" : ""}`}
+                    onClick={() => setActiveQuickTab((current) => (current === "skill" ? null : "skill"))}
+                    aria-expanded={activeQuickTab === "skill"}
+                  >
+                    <Lightning size={13} weight="fill" />
+                    快捷指令
+                    <CaretDown size={11} className={activeQuickTab === "skill" ? "open" : ""} />
+                  </button>
+                  <button
+                    className={`quick-instruction-toggle ${activeQuickTab === "task" ? "active" : ""}`}
+                    onClick={() => setActiveQuickTab((current) => (current === "task" ? null : "task"))}
+                    aria-expanded={activeQuickTab === "task"}
+                  >
+                    <Robot size={13} weight="fill" />
+                    任务
+                    <CaretDown size={11} className={activeQuickTab === "task" ? "open" : ""} />
+                  </button>
+                </div>
+                {activeQuickTab === "skill" && (
                   <div className="quick-instruction-menu">
-                    {scriptNodes.map((node) => (
+                    {skillNodes.map((node) => (
                       <button
                         key={node.id}
                         className="quick-instruction-item"
-                        onClick={() => { setInput(node.sampleInput); setQuickMenuOpen(false); }}
+                        onClick={() => runScriptedInvocation(node)}
                       >
-                        <Tag tone={node.stage === "skill" ? "blue" : "purple"}>{node.stageLabel}</Tag>
+                        <Tag tone="blue">{node.stageLabel}</Tag>
                         <span>{node.quickLabel}</span>
                       </button>
                     ))}
-                    {!showAgentNote && (
+                  </div>
+                )}
+                {activeQuickTab === "task" && (
+                  <div className="quick-instruction-menu">
+                    {taskNodes.map((node) => (
                       <button
+                        key={node.id}
                         className="quick-instruction-item"
-                        onClick={() => { revealAgentNote(); setQuickMenuOpen(false); }}
+                        onClick={() => runScriptedInvocation(node)}
                       >
-                        <Tag tone="agent-tag">Agent</Tag>
-                        <span>查看待办通知</span>
+                        <Tag tone={node.stage === "workflow" ? "purple" : "agent-tag"}>{node.stageLabel}</Tag>
+                        <span>{node.quickLabel}</span>
                       </button>
-                    )}
+                    ))}
                   </div>
                 )}
               </div>
