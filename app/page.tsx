@@ -683,15 +683,15 @@ export default function Home() {
         <div className="conversation-tabs" aria-label="快捷会话">
           <button className="quick-contact" onClick={() => handleConversationClick("agent")}>
             <span className="quick-contact-avatar quick-contact-scenery" />
-            <span>小周</span>
+            <span>小张</span>
           </button>
           <button className="quick-contact" onClick={() => handleConversationClick("weekly")}>
             <span className="quick-contact-avatar quick-contact-portrait" />
-            <span>小林</span>
+            <span>小朱</span>
           </button>
           <button className="quick-contact" onClick={() => handleConversationClick("agent")}>
             <span className="quick-contact-avatar quick-contact-agent" />
-            <span>飞书智能体</span>
+            <span>张家琴的智能体</span>
           </button>
         </div>
 
