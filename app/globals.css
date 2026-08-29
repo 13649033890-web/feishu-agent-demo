@@ -1781,6 +1781,222 @@ input:focus-visible {
   font-size: 9px;
 }
 
+.message-bubble-card {
+  border-radius: 3px 12px 12px 12px;
+}
+
+/* 脚本化演示引擎：Skill / 工作流 结果卡片，折叠摘要 + 点开展开详情 */
+.script-card {
+  width: 100%;
+  min-width: 280px;
+  overflow: hidden;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 4px 14px rgba(39, 66, 105, 0.06);
+}
+
+.script-card-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 12px;
+  background: transparent;
+  text-align: left;
+}
+
+.script-card-summary:hover {
+  background: #f7f9fc;
+}
+
+.script-card-summary-text {
+  flex: 1;
+  min-width: 0;
+  color: #344356;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.script-card-caret {
+  flex: 0 0 auto;
+  color: #9aa7b5;
+  transition: transform 150ms ease;
+}
+
+.script-card-caret.open {
+  transform: rotate(90deg);
+}
+
+.script-card-detail {
+  padding: 2px 13px 13px;
+  border-top: 1px solid var(--line);
+}
+
+.script-card-table {
+  width: 100%;
+  margin-top: 10px;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+
+.script-card-table th,
+.script-card-table td {
+  padding: 7px 8px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  color: #475268;
+}
+
+.script-card-table th {
+  color: #8390a1;
+  font-weight: 600;
+  font-size: 10px;
+}
+
+.script-card-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.script-card-note {
+  margin: 9px 0 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--blue-soft);
+  color: #35507e;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.script-card-steps {
+  display: grid;
+  gap: 9px;
+  margin-top: 10px;
+}
+
+.script-card-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+}
+
+.script-card-step-index {
+  display: grid;
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--blue-soft);
+  color: var(--blue);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.script-card-step strong {
+  display: block;
+  color: #344356;
+  font-size: 12px;
+}
+
+.script-card-step span {
+  color: #7d8794;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.script-card-outline {
+  margin: 10px 0 0;
+  padding-left: 18px;
+  color: #475268;
+  font-size: 11.5px;
+  line-height: 1.9;
+}
+
+/* Agent 主动消息卡片：无需触发，页面加载即存在 */
+.agent-proactive-note {
+  max-width: 78%;
+}
+
+.agent-note-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 3px 12px 12px 12px;
+  background: #fff;
+  color: #344356;
+  font-size: 11.5px;
+  font-weight: 600;
+  box-shadow: 0 4px 14px rgba(39, 66, 105, 0.06);
+}
+
+.agent-note-detail {
+  margin-top: 6px;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  background: #fff;
+  border-top: 1px solid var(--line-strong);
+}
+
+/* 快捷指令：点击填入输入框文本，仍需手动点发送，避免现场打字出错 */
+.quick-instruction-bar {
+  position: relative;
+  margin: 6px 2px 0;
+}
+
+.quick-instruction-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 9px;
+  border-radius: 7px;
+  background: #f2f5f8;
+  color: #657285;
+  font-size: 11px;
+}
+
+.quick-instruction-toggle:hover {
+  background: #eaf1ff;
+  color: var(--blue);
+}
+
+.quick-instruction-toggle svg.open {
+  transform: rotate(180deg);
+}
+
+.quick-instruction-menu {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 0;
+  z-index: 5;
+  display: grid;
+  gap: 2px;
+  width: max-content;
+  min-width: 220px;
+  padding: 6px;
+  border: 1px solid var(--line-strong);
+  border-radius: 11px;
+  background: #fff;
+  box-shadow: 0 14px 30px rgba(33, 63, 107, 0.14);
+}
+
+.quick-instruction-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 8px;
+  border-radius: 7px;
+  background: transparent;
+  color: #475268;
+  font-size: 12px;
+  text-align: left;
+}
+
+.quick-instruction-item:hover {
+  background: #f4f7fb;
+}
+
 .composer-wrap {
   position: relative;
   z-index: 2;
@@ -2411,44 +2627,14 @@ input:focus-visible {
   .agent-function-tabs button { padding: 0 6px; font-size: 10px; }
 }
 
-/* The untouched left half is rendered from the user's redacted Feishu screenshot.
-   Invisible semantic controls remain underneath so navigation and conversations stay usable. */
-.app-frame {
-  position: relative;
-  grid-template-columns: 12.03vw 24.69vw minmax(0, 1fr);
-}
-
-.static-left-shell {
-  position: absolute;
-  z-index: 4;
-  inset: 0 auto 0 0;
-  width: 36.72vw;
-  pointer-events: none;
-  overflow: hidden;
-}
-
-.static-left-shell img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: fill;
-  user-select: none;
-}
-
+/* Left half now renders as real, crisp components (no screenshot overlay). */
 .app-rail,
 .conversation-pane {
   position: relative;
   z-index: 1;
-  opacity: 0;
 }
 
 .chat-shell {
   position: relative;
   z-index: 2;
-}
-
-@media (max-width: 980px) {
-  .app-frame {
-    grid-template-columns: 12.03vw 24.69vw minmax(0, 1fr);
-  }
 }

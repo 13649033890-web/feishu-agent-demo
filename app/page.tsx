@@ -8,12 +8,14 @@ import {
 } from "react";
 import {
   Article,
+  ArrowCounterClockwise,
   ArrowRight,
   ArrowUpRight,
   At,
   Bell,
   BookOpen,
   CalendarBlank,
+  CaretDown,
   CaretRight,
   ChartBar,
   ChartLineUp,
@@ -65,11 +67,38 @@ type NavId =
 type MessageRole = "user" | "assistant";
 type SendStatus = "idle" | "preview" | "confirmed";
 
+type ScriptStage = "skill" | "workflow";
+
+type ScriptDetail =
+  | { kind: "table"; headers: string[]; rows: string[][]; note?: string }
+  | { kind: "steps"; steps: { title: string; note: string }[] }
+  | { kind: "outline"; items: string[] };
+
+type ScriptCardPayload = {
+  nodeId: string;
+  stage: ScriptStage;
+  stageLabel: string;
+  summary: string;
+  detail: ScriptDetail;
+};
+
+type ScriptNode = {
+  id: string;
+  stage: ScriptStage;
+  stageLabel: string;
+  quickLabel: string;
+  sampleInput: string;
+  keywords: string[];
+  summary: string;
+  detail: ScriptDetail;
+};
+
 type ChatMessage = {
   id: string;
   role: MessageRole;
   text: string;
   detail?: string;
+  card?: ScriptCardPayload;
 };
 
 type NavItem = {
@@ -188,6 +217,89 @@ const sourceLabels = [
   { label: "Git 复盘索引", icon: GitBranch },
 ];
 
+// 脚本化演示引擎的触发映射表（DEMO_SCRIPT_ENGINE_SPEC.md 2.2 节）。
+// 只改这里就能调整关键词和文案，不需要碰下面的匹配/渲染逻辑。
+const scriptNodes: ScriptNode[] = [
+  {
+    id: "skill-ab-test",
+    stage: "skill",
+    stageLabel: "Skill",
+    quickLabel: "AB 实验分析",
+    sampleInput: "帮我出下这周 AB 实验的分析",
+    keywords: ["AB 实验", "实验分析", "AB实验"],
+    summary: "AB 实验分析已完成",
+    detail: {
+      kind: "table",
+      headers: ["指标", "A 组（原策略）", "B 组（新策略）"],
+      rows: [
+        ["样本量", "6,240", "6,240"],
+        ["转化率", "18.4%", "21.7%"],
+        ["显著性", "—", "p < 0.01"],
+      ],
+      note: "结论：B 组策略提升明显，建议下周全量。",
+    },
+  },
+  {
+    id: "skill-sql",
+    stage: "skill",
+    stageLabel: "Skill",
+    quickLabel: "坑位取数",
+    sampleInput: "帮我取一下这周的坑位曝光点击数据",
+    keywords: ["取数", "坑位数据", "曝光点击"],
+    summary: "取数已完成，结果表已生成",
+    detail: {
+      kind: "table",
+      headers: ["坑位 ID", "曝光", "点击", "点击率"],
+      rows: [
+        ["PID-0231", "128,400", "9,760", "7.6%"],
+        ["PID-0245", "96,120", "5,180", "5.4%"],
+        ["PID-0312", "71,900", "6,530", "9.1%"],
+      ],
+      note: "数据来源：演示环境模拟结果，非真实取数。",
+    },
+  },
+  {
+    id: "skill-prd",
+    stage: "skill",
+    stageLabel: "Skill",
+    quickLabel: "PRD 大纲",
+    sampleInput: "帮我起一版需求文档的大纲",
+    keywords: ["PRD", "需求文档"],
+    summary: "PRD 大纲已生成",
+    detail: {
+      kind: "outline",
+      items: [
+        "背景与问题：现状数据 + 用户反馈摘要",
+        "目标与范围：本期要解决什么、不做什么",
+        "方案设计：核心流程与关键交互",
+        "数据埋点：需要新增的指标与事件",
+        "风险与排期：依赖项、里程碑",
+      ],
+    },
+  },
+  {
+    id: "workflow-xiaohongshu",
+    stage: "workflow",
+    stageLabel: "工作流",
+    quickLabel: "民宿动态整理",
+    sampleInput: "帮我整理一下最近的海淀民宿动态",
+    keywords: ["海淀民宿", "民宿动态", "帖子整理"],
+    summary: "民宿动态整理工作流已完成",
+    detail: {
+      kind: "steps",
+      steps: [
+        { title: "抓取来源", note: "公开笔记 · 站内搜索关键词“海淀民宿”" },
+        { title: "筛选逻辑", note: "近 7 天发布 · 互动量前 30% · 去重相似标题" },
+        { title: "结果摘要", note: "整理出 5 条值得关注的动态，2 条新开业、3 条体验测评" },
+      ],
+    },
+  },
+];
+
+function matchScriptNode(text: string): ScriptNode | undefined {
+  return scriptNodes.find((node) => node.keywords.some((keyword) => text.includes(keyword)));
+}
+
 function AgentAvatar({ small = false }: { small?: boolean }) {
   return (
     <span className={`agent-avatar ${small ? "agent-avatar-small" : ""}`} aria-hidden="true">
@@ -230,6 +342,83 @@ function SourcePills({ onSelect }: { onSelect: (label: string) => void }) {
           <span>{label}</span>
         </button>
       ))}
+    </div>
+  );
+}
+
+function ScriptResultCard({
+  card,
+  expanded,
+  onToggle,
+}: {
+  card: ScriptCardPayload;
+  expanded: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <div className={`script-card script-card-${card.stage}`}>
+      <button className="script-card-summary" onClick={onToggle} aria-expanded={expanded}>
+        <Tag tone={card.stage === "skill" ? "blue" : "purple"}>{card.stageLabel}</Tag>
+        <span className="script-card-summary-text">{card.summary}</span>
+        <CaretRight className={`script-card-caret ${expanded ? "open" : ""}`} size={13} />
+      </button>
+      {expanded && (
+        <div className="script-card-detail">
+          {card.detail.kind === "table" && (
+            <>
+              <table className="script-card-table">
+                <thead>
+                  <tr>{card.detail.headers.map((header) => <th key={header}>{header}</th>)}</tr>
+                </thead>
+                <tbody>
+                  {card.detail.rows.map((row, rowIndex) => (
+                    <tr key={rowIndex}>{row.map((cell, cellIndex) => <td key={cellIndex}>{cell}</td>)}</tr>
+                  ))}
+                </tbody>
+              </table>
+              {card.detail.note && <p className="script-card-note">{card.detail.note}</p>}
+            </>
+          )}
+          {card.detail.kind === "steps" && (
+            <div className="script-card-steps">
+              {card.detail.steps.map((step, index) => (
+                <div className="script-card-step" key={step.title}>
+                  <span className="script-card-step-index">{index + 1}</span>
+                  <div><strong>{step.title}</strong><span>{step.note}</span></div>
+                </div>
+              ))}
+            </div>
+          )}
+          {card.detail.kind === "outline" && (
+            <ul className="script-card-outline">
+              {card.detail.items.map((item) => <li key={item}>{item}</li>)}
+            </ul>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AgentProactiveNote({ expanded, onToggle }: { expanded: boolean; onToggle: () => void }) {
+  return (
+    <div className="message-row assistant agent-proactive-note">
+      <AgentAvatar small />
+      <div className="message-content">
+        <button className="agent-note-summary" onClick={onToggle} aria-expanded={expanded}>
+          <span>昨晚整理了 12 条待办，3 条需要你确认</span>
+          <CaretRight className={`script-card-caret ${expanded ? "open" : ""}`} size={13} />
+        </button>
+        {expanded && (
+          <div className="script-card-detail agent-note-detail">
+            <div className="script-card-steps">
+              <div className="script-card-step"><span className="script-card-step-index">1</span><div><strong>会议结论已归档</strong><span>首页搜索改版会议纪要 · 已生成待办 2 条</span></div></div>
+              <div className="script-card-step"><span className="script-card-step-index">2</span><div><strong>周报草稿已生成</strong><span>基于本周数据自动填充，等待你审核措辞</span></div></div>
+              <div className="script-card-step"><span className="script-card-step-index">3</span><div><strong>1 条异常待确认</strong><span>机票线通过率环比下降，需要你判断是否升级提醒</span></div></div>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -559,9 +748,6 @@ function ConversationPreview({ onBack }: { onBack: () => void }) {
 }
 
 export default function Home() {
-  const leftShellPath = window.location.pathname.startsWith("/feishu-agent-demo")
-    ? "/feishu-agent-demo/feishu-left-shell.png"
-    : "/feishu-left-shell.png";
   const [activeNav, setActiveNav] = useState<NavId>("messages");
   const [selectedConversation, setSelectedConversation] = useState("agent");
   const [mode, setMode] = useState<Mode>("personal");
@@ -572,6 +758,10 @@ export default function Home() {
   const [attachedFile, setAttachedFile] = useState("");
   const [toast, setToast] = useState("");
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>({});
+  const [sequenceIndex, setSequenceIndex] = useState(0);
+  const [agentNoteExpanded, setAgentNoteExpanded] = useState(false);
+  const [quickMenuOpen, setQuickMenuOpen] = useState(false);
 
   const showToast = (message: string) => {
     setToast(message);
@@ -615,6 +805,51 @@ export default function Home() {
     showToast(`已加入收件箱：${file.name}`);
   };
 
+  const toggleCard = (id: string) => {
+    setExpandedCards((current) => ({ ...current, [id]: !current[id] }));
+  };
+
+  const appendScriptResult = (node: ScriptNode, userText?: string) => {
+    const stamp = Date.now();
+    const assistantId = `${stamp}-assistant`;
+    setChatMessages((current) => [
+      ...current,
+      ...(userText ? [{ id: `${stamp}-user`, role: "user" as MessageRole, text: userText }] : []),
+      {
+        id: assistantId,
+        role: "assistant" as MessageRole,
+        text: node.stage === "skill" ? "已收到，处理完成：" : "工作流已执行完成：",
+        card: { nodeId: node.id, stage: node.stage, stageLabel: node.stageLabel, summary: node.summary, detail: node.detail },
+      },
+    ]);
+  };
+
+  // 隐藏容错机制（DEMO_SCRIPT_ENGINE_SPEC.md 3.2）：双击空输入框，或输入固定词“继续”，
+  // 不依赖关键词是否命中，直接推进到下一个剧本节点，防止现场卡壳。
+  const forceAdvance = () => {
+    const node = scriptNodes[sequenceIndex % scriptNodes.length];
+    appendScriptResult(node);
+    setSequenceIndex((current) => (current + 1) % scriptNodes.length);
+    showToast("已推进到下一个演示节点");
+  };
+
+  const resetDemo = () => {
+    setChatMessages([]);
+    setExpandedCards({});
+    setSequenceIndex(0);
+    setAgentNoteExpanded(false);
+    setReviewStarted(false);
+    setWorkflowStarted(false);
+    setSendStatus("idle");
+    setInput("");
+    setAttachedFile("");
+    setMode("personal");
+    setActiveNav("messages");
+    setSelectedConversation("agent");
+    setQuickMenuOpen(false);
+    showToast("演示已重置，可以重新彩排");
+  };
+
   const sendMessage = () => {
     const text = input.trim();
     if (!text) {
@@ -622,17 +857,25 @@ export default function Home() {
       return;
     }
 
-    const assistantText = text.includes("通过率") || text.includes("上会")
-      ? "我会读取本周需求 FR 多维表格，先返回指标、口径和来源；如果你要通知负责人，我会先生成确认卡。"
-      : text.includes("复盘") || text.includes("收件箱")
-        ? "收到。我会把原始资料和 AI 派生结果分开整理，输出可审核的索引、待办和草稿。"
-        : "收到。我会先拆解任务、标注证据与风险，再把可执行的下一步放进结果卡。";
+    if (text === "继续") {
+      forceAdvance();
+      setInput("");
+      setAttachedFile("");
+      return;
+    }
 
-    setChatMessages((current) => [
-      ...current,
-      { id: `${Date.now()}-user`, role: "user", text },
-      { id: `${Date.now()}-assistant`, role: "assistant", text: assistantText, detail: "演示响应 · 未调用真实飞书数据" },
-    ]);
+    const node = matchScriptNode(text);
+    if (node) {
+      appendScriptResult(node, text);
+      const nodeIndex = scriptNodes.findIndex((item) => item.id === node.id);
+      setSequenceIndex((nodeIndex + 1) % scriptNodes.length);
+    } else {
+      setChatMessages((current) => [
+        ...current,
+        { id: `${Date.now()}-user`, role: "user", text },
+        { id: `${Date.now()}-assistant`, role: "assistant", text: "收到。我会先拆解任务、标注证据与风险，再把可执行的下一步放进结果卡。", detail: "演示响应 · 未调用真实飞书数据" },
+      ]);
+    }
     setInput("");
     setAttachedFile("");
   };
@@ -646,9 +889,6 @@ export default function Home() {
 
   return (
     <main className="app-frame">
-      <div className="static-left-shell" aria-hidden="true">
-        <img src={leftShellPath} alt="" />
-      </div>
       <aside className="app-rail">
         <button className="profile-orb" aria-label="打开个人菜单" onClick={() => showToast("演示账号：产品经理 · 工作台")}>Z</button>
         <button className="rail-search" onClick={() => showToast("搜索已打开：可搜索会话、文档和智能体")} aria-label="搜索">
@@ -742,6 +982,7 @@ export default function Home() {
             <button className="top-action" aria-label="添加成员" onClick={() => showToast("智能体会话暂不添加成员")}><UsersThree size={20} /></button>
             <button className="top-action" aria-label="编辑会话" onClick={() => showToast("会话名称由演示配置固定")}><NotePencil size={20} /></button>
             <button className="top-action" aria-label="设置" onClick={() => showToast("智能体设置已打开")}><Gear size={20} /></button>
+            <button className="top-action" aria-label="重置演示" title="重置演示（用于反复彩排）" onClick={resetDemo}><ArrowCounterClockwise size={19} /></button>
           </div>
         </header>
 
@@ -767,12 +1008,23 @@ export default function Home() {
                 </>
               )}
 
-              {chatMessages.length > 0 && (
+              {mode === "personal" && (
                 <div className="chat-messages" aria-live="polite">
+                  <AgentProactiveNote expanded={agentNoteExpanded} onToggle={() => setAgentNoteExpanded((current) => !current)} />
                   {chatMessages.map((message) => (
                     <div className={`message-row ${message.role}`} key={message.id}>
                       {message.role === "assistant" && <AgentAvatar small />}
-                      <div className="message-content"><div className="message-bubble">{message.text}</div>{message.detail && <span className="message-detail">{message.detail}</span>}</div>
+                      <div className="message-content">
+                        <div className={`message-bubble ${message.card ? "message-bubble-card" : ""}`}>{message.text}</div>
+                        {message.detail && <span className="message-detail">{message.detail}</span>}
+                        {message.card && (
+                          <ScriptResultCard
+                            card={message.card}
+                            expanded={!!expandedCards[message.id]}
+                            onToggle={() => toggleCard(message.id)}
+                          />
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -790,11 +1042,35 @@ export default function Home() {
               <button className="composer-tool" title="插入快捷操作" onClick={() => showToast("快捷操作：复盘 / 查数 / 生成草稿")}><Plus size={19} /></button>
               <button className="composer-tool" title="语音输入" onClick={() => showToast("演示中暂不录音，直接输入即可")}><Microphone size={19} /></button>
             </div>
+            {mode === "personal" && (
+              <div className="quick-instruction-bar">
+                <button className="quick-instruction-toggle" onClick={() => setQuickMenuOpen((current) => !current)} aria-expanded={quickMenuOpen}>
+                  <Lightning size={13} weight="fill" />
+                  快捷指令
+                  <CaretDown size={11} className={quickMenuOpen ? "open" : ""} />
+                </button>
+                {quickMenuOpen && (
+                  <div className="quick-instruction-menu">
+                    {scriptNodes.map((node) => (
+                      <button
+                        key={node.id}
+                        className="quick-instruction-item"
+                        onClick={() => { setInput(node.sampleInput); setQuickMenuOpen(false); }}
+                      >
+                        <Tag tone={node.stage === "skill" ? "blue" : "purple"}>{node.stageLabel}</Tag>
+                        <span>{node.quickLabel}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
             <div className="composer-input-row">
               <input
                 value={input}
                 onChange={(event) => setInput(event.target.value)}
                 onKeyDown={handleInputKeyDown}
+                onDoubleClick={() => { if (!input.trim()) forceAdvance(); }}
                 placeholder={mode === "boss" ? "问问本周业务进展、通过率或异常…" : "把想法、文件或一句需求交给智能体…"}
                 aria-label="发送给智能体"
               />
