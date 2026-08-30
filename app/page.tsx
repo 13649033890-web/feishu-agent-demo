@@ -4,6 +4,7 @@ import {
   type ChangeEvent,
   type ElementType,
   type KeyboardEvent,
+  useEffect,
   useRef,
   useState,
 } from "react";
@@ -295,18 +296,27 @@ const skillNodes: ScriptNode[] = [
     stage: "skill",
     stageLabel: "Skill",
     quickLabel: "PRD 大纲",
-    slug: "prd-outline",
-    sampleInput: "帮我起一版需求文档的大纲",
-    keywords: ["PRD", "需求文档", "prd-outline"],
-    summary: "PRD 大纲已生成",
+    slug: "qunar-write-prd",
+    sampleInput:
+      "我预计做一个将历史搜索展示行数从 2 行改为 3 行的策略，附上了历史搜索分位置点击数据和热门推荐分位置点击数据，请你从整体角度评估这个策略是否会对中间页和大搜造成影响，并检索一下过往是否有类似策略的实验结论，最后告诉我是否可行。",
+    keywords: ["PRD", "需求文档", "需求分析", "历史搜索", "prd-outline", "qunar-write-prd"],
+    summary: "需求可行性分析已完成",
+    inputAttachment: "历史搜索分位置点击数据.xlsx、热门推荐分位置点击数据.xlsx",
+    outputAttachment: {
+      name: "【后评估-大搜】放开历史搜索展示行数.md",
+      excerpt: [
+        "目标完成情况评估：历史搜索指标微正，但中间页指标和大搜整体指标负向，若全量后大搜整体订单下降 226 单，不支持全量",
+        "拆解来看：中间页指标负向主要来源于热门推荐点击和订单指标的显著下降，分位置看主要集中在前两位词条",
+        "推测原因：历史搜索行数扩展后，历史搜索模块整体下移了热门推荐，导致其数据下降",
+      ],
+    },
     detail: {
-      kind: "outline",
-      items: [
-        "背景与问题：现状数据 + 用户反馈摘要",
-        "目标与范围：本期要解决什么、不做什么",
-        "方案设计：核心流程与关键交互",
-        "数据埋点：需要新增的指标与事件",
-        "风险与排期：依赖项、里程碑",
+      kind: "steps",
+      steps: [
+        { title: "本次数据初判", note: "历史搜索展示行数与点击、订单转化正相关，行数放开后历史搜索模块指标预计小幅提升" },
+        { title: "过往类似实验", note: "查到 2025.5.29 立项的『放开历史搜索展示行数』实验（250427_co_other_history_rows_op，7 天数据）：历史搜索指标微正，但中间页点击转化显著负向，热门推荐点击与订单显著下降，且主要集中在前两位词条" },
+        { title: "全量测算", note: "该实验若全量，大搜整体日均订单预计下降 226 单，不符合预期，此前未支持全量" },
+        { title: "结论", note: "不建议直接推进 2→3 行策略；如需尝试，建议优先解决历史搜索对热门推荐的下移遮挡问题，再以更小流量灰度验证" },
       ],
     },
   },
@@ -332,25 +342,6 @@ const taskNodes: ScriptNode[] = [
     },
   },
   {
-    id: "agent-daily-report",
-    stage: "agent",
-    stageLabel: "Agent",
-    quickLabel: "查看今日日报",
-    slug: "daily-report-agent",
-    sampleInput: "帮我看下今日日报",
-    keywords: ["今日日报", "查看日报", "日报", "daily-report-agent"],
-    summary: "今日日报已生成",
-    detail: {
-      kind: "outline",
-      items: [
-        "项目进展：FD-430797 审批通过，已新建 PMO 项目群",
-        "日程：晚间 19:30-21:30 团队聚会，无会议冲突",
-        "未处理待办：2 条待推进、1 条待他人回复",
-        "今日规划：已按优先级排好 4 项待办",
-      ],
-    },
-  },
-  {
     id: "agent-weekly-report",
     stage: "agent",
     stageLabel: "Agent",
@@ -366,34 +357,6 @@ const taskNodes: ScriptNode[] = [
         "关键指标变化：核心转化率环比 +2.3%",
         "风险与待办：2 项待跟进事项已标注负责人",
         "下周计划：优先推进 FD-430797 与 PRD 评审",
-      ],
-    },
-  },
-  {
-    id: "agent-prd-analysis",
-    stage: "agent",
-    stageLabel: "Agent",
-    quickLabel: "新建需求分析",
-    slug: "qunar-write-prd",
-    sampleInput:
-      "请你调用qunar-write-prd为我完成一份需要文档，如果无法调用请直接告知，这个需求简要概括就是热门推荐现在没有租车的词条，V3接口（用户历史行为接口）现在有租车的数据了，点击数据里带了租车的点击还有城市信息，即多增加召回数据，但是排序规则不变。具体我将附上聊天记录供你参考",
-    keywords: ["新建需求分析", "需求分析", "qunar-write-prd"],
-    summary: "需求分析文档已创建",
-    inputAttachment: "产品需求讨论_聊天记录.txt",
-    outputAttachment: {
-      name: "【PRD需求文档】大搜中间页热门推荐新增租车召回.docx",
-      excerpt: [
-        "核心结论：热门推荐新增租车行为召回，仅使用点击、订单、支付三类有效行为；搜索行为不接入",
-        "排序规则不变：新增候选与其他业务候选共同参与现有排序，不修改排序特征、权重、展示位",
-        "验收方式：AB 实验 · 租车词条点击率、订单转化率，连续 14 个自然日观察",
-      ],
-    },
-    detail: {
-      kind: "steps",
-      steps: [
-        { title: "背景梳理", note: "热门推荐尚未消费租车用户行为，V3 接口已覆盖租车点击/订单/支付，具备接入条件" },
-        { title: "方案确认", note: "仅新增候选来源，不改动排序规则、权重与展示位" },
-        { title: "下一步", note: "已生成待评审 PRD 初稿，等待你确认" },
       ],
     },
   },
@@ -507,7 +470,7 @@ function ThinkingDisclosure({ card }: { card: ScriptCardPayload }) {
   );
 }
 
-// 输出文档卡片：点开可看脱敏摘要，"用 WPS 打开"会弹出仿 WPS 窗口的浮层展示正文摘要。
+// 输出文档卡片：点开可看脱敏摘要，"在飞书云文档中打开"会弹出仿飞书文档窗口的浮层展示正文摘要。
 function DocumentCard({
   name,
   excerpt,
@@ -532,45 +495,42 @@ function DocumentCard({
           ) : (
             <p className="document-card-placeholder">脱敏输入数据 · 仅用于本次分析上下文</p>
           )}
-          <button className="text-action" onClick={onOpen}><ArrowUpRight size={13} /> 用 WPS 打开</button>
+          <button className="text-action" onClick={onOpen}><ArrowUpRight size={13} /> 在飞书云文档中打开</button>
         </div>
       )}
     </div>
   );
 }
 
-// 模拟"跳转至 WPS"打开文档：演示环境没有真实文档服务，用一个仿 WPS 窗口的浮层
+// 模拟"在飞书云文档中打开"：演示环境没有真实文档服务，用一个仿飞书文档窗口的浮层
 // 展示脱敏摘要内容，让"打开文档"这个动作真正可交互，而不是只弹一个提示。
-function WpsViewerModal({ doc, onClose }: { doc: OutputAttachment; onClose: () => void }) {
+function FeishuDocViewerModal({ doc, onClose }: { doc: OutputAttachment; onClose: () => void }) {
   return (
-    <div className="wps-modal-overlay" role="dialog" aria-modal="true" onClick={onClose}>
-      <div className="wps-modal" onClick={(event) => event.stopPropagation()}>
-        <div className="wps-modal-titlebar">
-          <div className="wps-modal-title">
-            <span className="wps-modal-icon">W</span>
-            <span className="wps-modal-name">{doc.name}</span>
-            <span className="wps-modal-app">WPS Office</span>
+    <div className="feishu-doc-modal-overlay" role="dialog" aria-modal="true" onClick={onClose}>
+      <div className="feishu-doc-modal" onClick={(event) => event.stopPropagation()}>
+        <div className="feishu-doc-modal-titlebar">
+          <div className="feishu-doc-modal-title">
+            <span className="feishu-doc-modal-icon"><Article size={13} weight="fill" /></span>
+            <span className="feishu-doc-modal-name">{doc.name}</span>
+            <span className="feishu-doc-modal-app">飞书云文档</span>
           </div>
-          <button className="wps-modal-close" onClick={onClose} aria-label="关闭">
+          <button className="feishu-doc-modal-close" onClick={onClose} aria-label="关闭">
             <X size={15} weight="bold" />
           </button>
         </div>
-        <div className="wps-modal-ribbon">
-          <span>开始</span><span>插入</span><span>页面布局</span><span>审阅</span><span>视图</span>
-        </div>
-        <div className="wps-modal-body">
-          <div className="wps-modal-page">
-            <h3>{doc.name.replace(/\.docx?$/i, "")}</h3>
+        <div className="feishu-doc-modal-body">
+          <div className="feishu-doc-modal-page">
+            <h3>{doc.name.replace(/\.(docx?|md)$/i, "")}</h3>
             {doc.excerpt && doc.excerpt.length > 0 ? (
               <ul>
                 {doc.excerpt.map((line) => <li key={line}>{line}</li>)}
               </ul>
             ) : (
-              <p className="wps-modal-placeholder">脱敏输入数据 · 仅用于本次分析上下文</p>
+              <p className="feishu-doc-modal-placeholder">脱敏输入数据 · 仅用于本次分析上下文</p>
             )}
           </div>
         </div>
-        <div className="wps-modal-footer">
+        <div className="feishu-doc-modal-footer">
           <ShieldCheck size={13} weight="fill" />
           <span>演示态：以上为脱敏摘要，完整正文见飞书云文档（权限范围内可见）</span>
         </div>
@@ -677,7 +637,7 @@ function ModeSwitch({ mode, onChange }: { mode: Mode; onChange: (mode: Mode) => 
         onClick={() => onChange("boss")}
       >
         <ChartLineUp size={15} weight="duotone" />
-        老板驾驶舱
+        数据一览表
       </button>
     </div>
   );
@@ -922,7 +882,7 @@ function BossDashboard({
       <section className="boss-hero">
         <div className="boss-hero-copy">
           <div className="eyebrow"><span className="eyebrow-dot" /> 经营判断 · 数据均来自已授权范围</div>
-          <h2>老板驾驶舱</h2>
+          <h2>数据一览表</h2>
           <p>一句话看清本周各业务线的上会量、进度和通过率，结论附带口径与来源。</p>
         </div>
         <div className="boss-hero-badge"><ChartLineUp size={27} weight="duotone" /><span>本周<br /><strong>实时汇总</strong></span></div>
@@ -1029,7 +989,25 @@ export default function Home() {
   const [showWorkflowPanel, setShowWorkflowPanel] = useState(false);
   const [showAgentNote, setShowAgentNote] = useState(false);
   const [openDoc, setOpenDoc] = useState<OutputAttachment | null>(null);
+  const [showScrollToBottom, setShowScrollToBottom] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const chatBodyRef = useRef<HTMLDivElement | null>(null);
+
+  // 新消息到达时自动跳到底部，不管用户之前把对话往上翻到了哪里。
+  useEffect(() => {
+    chatBodyRef.current?.scrollTo({ top: chatBodyRef.current.scrollHeight, behavior: "auto" });
+  }, [chatMessages.length]);
+
+  const scrollChatToBottom = () => {
+    chatBodyRef.current?.scrollTo({ top: chatBodyRef.current.scrollHeight, behavior: "auto" });
+  };
+
+  const handleChatScroll = () => {
+    const el = chatBodyRef.current;
+    if (!el) return;
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    setShowScrollToBottom(distanceFromBottom > 160);
+  };
 
   const composerTarget =
     selectedConversation === "agent"
@@ -1045,6 +1023,8 @@ export default function Home() {
     setMode("boss");
     setActiveNav("tables");
     setSelectedConversation("agent");
+    // 数据一览表要从顶部开始看，不能停留在切换前那条回答的滚动位置上。
+    if (chatBodyRef.current) chatBodyRef.current.scrollTop = 0;
   };
 
   const openPersonalMode = () => {
@@ -1141,7 +1121,6 @@ export default function Home() {
             : message
         )
       );
-      if (node.id === "agent-daily-report") revealInbox();
     }, 900);
 
     const nodeIndex = scriptNodes.findIndex((item) => item.id === node.id);
@@ -1171,10 +1150,61 @@ export default function Home() {
     showToast("Agent 待办通知已出现");
   };
 
-  // Agent 层待办卡片、晚间复盘、工作流三块面板默认不展示，只有点对应入口或
-  // 命中关键词才会出现（页面加载时保持空白会话，贴近真实飞书新会话的样子）。
+  // 晚间复盘关键词命中：先出"今日日报"结果卡（原"查看今日日报" Agent 的内容已并入这里，
+  // 任务列表里不再单独出现），完成后再展开收件箱面板，两件事合并成一次晚间复盘。
+  const eveningReviewKeywords = ["晚间复盘", "收件箱", "收好这些事", "今日日报", "查看日报"];
+  const triggerEveningReview = (userText: string) => {
+    setActiveQuickTab(null);
+    const stamp = Date.now();
+    const userId = `${stamp}-user`;
+    const assistantId = `${stamp}-assistant`;
+    const durationLabel = randomDurationLabel();
+    const thinkingSteps = ["读取今日日程与待办来源", "汇总今日项目与协作进展", "生成今日日报并整理晚间收件箱"];
+
+    setChatMessages((current) => [
+      ...current,
+      { id: userId, role: "user" as MessageRole, text: userText },
+      {
+        id: assistantId,
+        role: "assistant" as MessageRole,
+        text: "已完成：",
+        card: {
+          nodeId: "evening-review",
+          stage: "agent",
+          stageLabel: "Agent",
+          summary: "今日日报已生成",
+          detail: {
+            kind: "outline",
+            items: [
+              "项目进展：FD-430797 审批通过，已新建 PMO 项目群",
+              "日程：晚间 19:30-21:30 团队聚会，无会议冲突",
+              "未处理待办：2 条待推进、1 条待他人回复",
+              "今日规划：已按优先级排好 4 项待办",
+            ],
+          },
+          invoking: true,
+          invokeName: "晚间复盘",
+          durationLabel,
+          thinkingSteps,
+        },
+      },
+    ]);
+
+    window.setTimeout(() => {
+      setChatMessages((current) =>
+        current.map((message) =>
+          message.id === assistantId && message.card
+            ? { ...message, card: { ...message.card, invoking: false } }
+            : message
+        )
+      );
+      revealInbox();
+    }, 900);
+  };
+
+  // Agent 层待办卡片、工作流面板默认不展示，只有点对应入口或命中关键词才会出现
+  // （页面加载时保持空白会话，贴近真实飞书新会话的样子）。晚间复盘走上面的专用逻辑。
   const dashboardTriggers: { keywords: string[]; reveal: () => void }[] = [
-    { keywords: ["晚间复盘", "收件箱", "收好这些事"], reveal: revealInbox },
     { keywords: ["运行工作流", "PM 工作流", "工作流编排"], reveal: revealWorkflow },
     { keywords: ["待办", "查看待办"], reveal: revealAgentNote },
   ];
@@ -1221,6 +1251,13 @@ export default function Home() {
 
     if (text === "继续") {
       forceAdvance();
+      setInput("");
+      setAttachedFile("");
+      return;
+    }
+
+    if (eveningReviewKeywords.some((keyword) => text.includes(keyword))) {
+      triggerEveningReview(text);
       setInput("");
       setAttachedFile("");
       return;
@@ -1350,7 +1387,7 @@ export default function Home() {
                 >
                   <ClipboardText size={15} weight="fill" />晚间复盘
                 </button>
-                <button onClick={() => { openPersonalMode(); revealWorkflow(); showToast("工作流已开始：生成 PRD 草稿"); }}><Sparkle size={15} weight="fill" />工作流</button>
+                <button className={mode === "boss" ? "active" : ""} onClick={openBossMode}><ChartLineUp size={15} weight="fill" />数据一览表</button>
                 <button className="agent-tab-more" onClick={() => showToast("更多智能体能力后续接入")} aria-label="更多功能"><Plus size={17} /></button>
               </nav>
             )}
@@ -1368,7 +1405,7 @@ export default function Home() {
         {selectedConversation !== "agent" ? (
           <div className="chat-body"><ConversationPreview onBack={() => { setSelectedConversation("agent"); setMode("personal"); setActiveNav("messages"); }} /></div>
         ) : (
-          <div className="chat-body">
+          <div className="chat-body" ref={chatBodyRef} onScroll={handleChatScroll}>
             <div className="chat-stream">
               <div className="date-divider"><span>8月27日</span></div>
               {mode === "personal" ? (
@@ -1439,6 +1476,12 @@ export default function Home() {
                 </div>
               )}
             </div>
+            {showScrollToBottom && (
+              <button className="scroll-to-bottom-btn" onClick={scrollChatToBottom} aria-label="回到最新消息">
+                <CaretDown size={15} weight="bold" />
+                回到最新
+              </button>
+            )}
           </div>
         )}
 
@@ -1464,10 +1507,6 @@ export default function Home() {
                     <Robot size={13} weight="fill" />
                     任务
                     <CaretDown size={11} className={activeQuickTab === "task" ? "open" : ""} />
-                  </button>
-                  <button className="quick-instruction-toggle quick-permission-btn" onClick={openBossMode}>
-                    <ShieldCheck size={13} weight="fill" />
-                    查看权限范围
                   </button>
                 </div>
                 {activeQuickTab === "skill" && (
@@ -1532,7 +1571,7 @@ export default function Home() {
         </div>
       </section>
 
-      {openDoc && <WpsViewerModal doc={openDoc} onClose={() => setOpenDoc(null)} />}
+      {openDoc && <FeishuDocViewerModal doc={openDoc} onClose={() => setOpenDoc(null)} />}
       {toast && <div className="toast" role="status"><CheckCircle size={16} weight="fill" />{toast}</div>}
     </main>
   );
