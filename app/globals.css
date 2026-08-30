@@ -2858,3 +2858,144 @@ input:focus-visible {
   background: #2f66d0;
   color: #fff;
 }
+
+/* 助手多行说明（如"查看权限范围"）保留换行，不用把每一条都拆成单独气泡。 */
+.message-row.assistant .message-bubble {
+  white-space: pre-line;
+}
+
+/* Claude 风格的"正在思考… / 已处理 Xs"折叠条，出现在结果卡之前。 */
+.thinking-disclosure {
+  margin-bottom: 2px;
+}
+
+.thinking-disclosure-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 4px;
+  border-radius: 6px;
+  background: transparent;
+  color: #9aa7b5;
+  font-size: 11px;
+}
+
+.thinking-disclosure-toggle:hover {
+  background: #f4f7fb;
+  color: #647388;
+}
+
+.thinking-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 4px;
+  color: #7d8794;
+  font-size: 11px;
+  font-style: italic;
+}
+
+.thinking-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--blue);
+  animation: thinking-pulse 1s ease-in-out infinite;
+}
+
+@keyframes thinking-pulse {
+  0%, 100% { opacity: 0.3; transform: scale(0.85); }
+  50% { opacity: 1; transform: scale(1); }
+}
+
+.thinking-steps {
+  display: grid;
+  gap: 4px;
+  margin: 4px 0 6px 4px;
+  padding-left: 14px;
+  color: #8390a1;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+/* 输入附件小标签：贴在用户消息气泡上方，代表本次调用附带的参考资料。 */
+.input-attachment-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  width: fit-content;
+  padding: 4px 9px;
+  border: 1px solid #e0e7f0;
+  border-radius: 8px;
+  background: #fff;
+  color: #647388;
+  font-size: 10.5px;
+}
+
+.message-row.user .input-attachment-chip {
+  justify-self: end;
+}
+
+/* 产出文档卡片：折叠时只显示文件名，点开看脱敏摘要 + "在飞书云文档中打开"。 */
+.document-card {
+  width: 100%;
+  min-width: 280px;
+  overflow: hidden;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  background: #fff;
+}
+
+.document-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 9px 12px;
+  background: transparent;
+  color: #2865da;
+  text-align: left;
+}
+
+.document-card-header:hover {
+  background: #f7f9fc;
+}
+
+.document-card-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: #2865da;
+  font-size: 12px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.document-card-body {
+  padding: 2px 13px 13px;
+  border-top: 1px solid var(--line);
+}
+
+.document-card-excerpt {
+  margin: 10px 0 0;
+  padding-left: 18px;
+  color: #475268;
+  font-size: 11.5px;
+  line-height: 1.8;
+}
+
+.document-card-placeholder {
+  margin: 10px 0 0;
+  color: #8d99a7;
+  font-size: 11px;
+}
+
+.document-card-body .text-action {
+  margin-top: 9px;
+}
+
+/* "查看权限范围"按钮：和快捷指令 / 任务并排，但不是下拉菜单，点了直接出说明。 */
+.quick-permission-btn {
+  color: #647388;
+}

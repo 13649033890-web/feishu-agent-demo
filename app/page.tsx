@@ -4,6 +4,7 @@ import {
   type ChangeEvent,
   type ElementType,
   type KeyboardEvent,
+  useRef,
   useState,
 } from "react";
 import {
@@ -76,6 +77,8 @@ type ScriptDetail =
   | { kind: "steps"; steps: { title: string; note: string }[] }
   | { kind: "outline"; items: string[] };
 
+type OutputAttachment = { name: string; excerpt: string[] };
+
 type ScriptCardPayload = {
   nodeId: string;
   stage: ScriptStage;
@@ -84,6 +87,9 @@ type ScriptCardPayload = {
   detail: ScriptDetail;
   invoking?: boolean;
   invokeName?: string;
+  durationLabel?: string;
+  thinkingSteps?: string[];
+  outputAttachment?: OutputAttachment;
 };
 
 type ScriptNode = {
@@ -91,10 +97,14 @@ type ScriptNode = {
   stage: ScriptStage;
   stageLabel: string;
   quickLabel: string;
+  slug: string;
   sampleInput: string;
   keywords: string[];
   summary: string;
   detail: ScriptDetail;
+  thinkingSteps?: string[];
+  inputAttachment?: string;
+  outputAttachment?: OutputAttachment;
 };
 
 type ChatMessage = {
@@ -103,6 +113,7 @@ type ChatMessage = {
   text: string;
   detail?: string;
   card?: ScriptCardPayload;
+  attachment?: string;
 };
 
 type NavItem = {
@@ -234,9 +245,19 @@ const skillNodes: ScriptNode[] = [
     stage: "skill",
     stageLabel: "Skill",
     quickLabel: "AB 实验分析",
-    sampleInput: "帮我出下这周 AB 实验的分析",
-    keywords: ["AB 实验", "实验分析", "AB实验"],
+    slug: "AB-Skill",
+    sampleInput: "请你调用AB Skill，为我分析本次实验数据，需要看整体和分业务线和老客与老客三个分类",
+    keywords: ["AB 实验", "实验分析", "AB实验", "AB-Skill", "AB Skill"],
     summary: "AB 实验分析已完成",
+    inputAttachment: "AB实验-分页面-分意图-分业务线-天_20260826160522.xlsx",
+    outputAttachment: {
+      name: "已接微服务意图词条拓展结论_更新版.docx",
+      excerpt: [
+        "实验号 260730_co_other_city_num：评估 suggestion 页词条数量由 15 增加至 18 的效果",
+        "整体订单量涨了 114.1 单/天，展示 UV 基本持平（微降 0.45%）",
+        "点击-订单转化率涨了 0.11 个百分点，S2O 涨了 0.05 个百分点",
+      ],
+    },
     detail: {
       kind: "table",
       headers: ["指标", "A 组（原策略）", "B 组（新策略）"],
@@ -253,8 +274,9 @@ const skillNodes: ScriptNode[] = [
     stage: "skill",
     stageLabel: "Skill",
     quickLabel: "坑位取数",
-    sampleInput: "帮我取一下这周的坑位曝光点击数据",
-    keywords: ["取数", "坑位数据", "曝光点击"],
+    slug: "bigsearch-weekly-sql",
+    sampleInput: "使用 $bigsearch-weekly-sql，更新2026.8.10截至8月26日的周 数据",
+    keywords: ["取数", "坑位数据", "曝光点击", "bigsearch-weekly-sql"],
     summary: "取数已完成，结果表已生成",
     detail: {
       kind: "table",
@@ -272,8 +294,9 @@ const skillNodes: ScriptNode[] = [
     stage: "skill",
     stageLabel: "Skill",
     quickLabel: "PRD 大纲",
+    slug: "prd-outline",
     sampleInput: "帮我起一版需求文档的大纲",
-    keywords: ["PRD", "需求文档"],
+    keywords: ["PRD", "需求文档", "prd-outline"],
     summary: "PRD 大纲已生成",
     detail: {
       kind: "outline",
@@ -294,8 +317,9 @@ const taskNodes: ScriptNode[] = [
     stage: "workflow",
     stageLabel: "工作流",
     quickLabel: "今日query抓取",
+    slug: "query-fetch-workflow",
     sampleInput: "帮我抓取一下今天的搜索 query",
-    keywords: ["今日query抓取", "query抓取", "抓取query", "搜索query"],
+    keywords: ["今日query抓取", "query抓取", "抓取query", "搜索query", "query-fetch-workflow"],
     summary: "今日 query 抓取工作流已完成",
     detail: {
       kind: "steps",
@@ -311,8 +335,9 @@ const taskNodes: ScriptNode[] = [
     stage: "agent",
     stageLabel: "Agent",
     quickLabel: "查看今日日报",
+    slug: "daily-report-agent",
     sampleInput: "帮我看下今日日报",
-    keywords: ["今日日报", "查看日报", "日报"],
+    keywords: ["今日日报", "查看日报", "日报", "daily-report-agent"],
     summary: "今日日报已生成",
     detail: {
       kind: "outline",
@@ -329,8 +354,9 @@ const taskNodes: ScriptNode[] = [
     stage: "agent",
     stageLabel: "Agent",
     quickLabel: "完成本周周报",
+    slug: "weekly-report-agent",
     sampleInput: "帮我写一下本周周报",
-    keywords: ["本周周报", "写周报", "周报"],
+    keywords: ["本周周报", "写周报", "周报", "weekly-report-agent"],
     summary: "本周周报初稿已生成",
     detail: {
       kind: "outline",
@@ -347,15 +373,26 @@ const taskNodes: ScriptNode[] = [
     stage: "agent",
     stageLabel: "Agent",
     quickLabel: "新建需求分析",
-    sampleInput: "帮我新建一份需求分析",
-    keywords: ["新建需求分析", "需求分析"],
+    slug: "qunar-write-prd",
+    sampleInput:
+      "请你调用qunar-write-prd为我完成一份需要文档，如果无法调用请直接告知，这个需求简要概括就是热门推荐现在没有租车的词条，V3接口（用户历史行为接口）现在有租车的数据了，点击数据里带了租车的点击还有城市信息，即多增加召回数据，但是排序规则不变。具体我将附上聊天记录供你参考",
+    keywords: ["新建需求分析", "需求分析", "qunar-write-prd"],
     summary: "需求分析文档已创建",
+    inputAttachment: "产品需求讨论_聊天记录.txt",
+    outputAttachment: {
+      name: "【PRD需求文档】大搜中间页热门推荐新增租车召回.docx",
+      excerpt: [
+        "核心结论：热门推荐新增租车行为召回，仅使用点击、订单、支付三类有效行为；搜索行为不接入",
+        "排序规则不变：新增候选与其他业务候选共同参与现有排序，不修改排序特征、权重、展示位",
+        "验收方式：AB 实验 · 租车词条点击率、订单转化率，连续 14 个自然日观察",
+      ],
+    },
     detail: {
       kind: "steps",
       steps: [
-        { title: "背景梳理", note: "整理现状数据与用户反馈来源" },
-        { title: "方案草拟", note: "给出 2 个候选方案与取舍建议" },
-        { title: "下一步", note: "已生成待评审 PRD 草稿，等待你确认" },
+        { title: "背景梳理", note: "热门推荐尚未消费租车用户行为，V3 接口已覆盖租车点击/订单/支付，具备接入条件" },
+        { title: "方案确认", note: "仅新增候选来源，不改动排序规则、权重与展示位" },
+        { title: "下一步", note: "已生成待评审 PRD 初稿，等待你确认" },
       ],
     },
   },
@@ -365,6 +402,18 @@ const scriptNodes: ScriptNode[] = [...skillNodes, ...taskNodes];
 
 function matchScriptNode(text: string): ScriptNode | undefined {
   return scriptNodes.find((node) => node.keywords.some((keyword) => text.includes(keyword)));
+}
+
+function defaultThinkingSteps(stage: ScriptStage, label: string): string[] {
+  if (stage === "skill") return ["解析关键词并匹配 Skill", `调用 ${label} 处理`, "生成结构化结果"];
+  if (stage === "workflow") return ["拆解任务为多个步骤", "按顺序执行工作流节点", "汇总产出并生成结果卡"];
+  return ["读取相关飞书数据来源", "生成内容草稿", "整理成可执行的结果"];
+}
+
+function randomDurationLabel(): string {
+  const minutes = Math.floor(Math.random() * 12) + 1;
+  const seconds = Math.floor(Math.random() * 60);
+  return `${minutes}m ${seconds}s`;
 }
 
 function AgentAvatar({ small = false }: { small?: boolean }) {
@@ -426,6 +475,69 @@ const stageTagTone: Record<ScriptStage, string> = {
   agent: "agent-tag",
 };
 
+// Claude 风格的"已处理 Xs"折叠条：调用中显示动效，完成后折叠成耗时摘要，
+// 点开可看简短的思考步骤（不代表真实处理时间，仅用于还原飞书智能体的调用观感）。
+function ThinkingDisclosure({ card }: { card: ScriptCardPayload }) {
+  const [open, setOpen] = useState(false);
+
+  if (card.invoking) {
+    return (
+      <div className="thinking-disclosure thinking-disclosure-active">
+        <span className="thinking-live">
+          <span className="thinking-dot" aria-hidden="true" />
+          正在思考…
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="thinking-disclosure">
+      <button className="thinking-disclosure-toggle" onClick={() => setOpen((current) => !current)} aria-expanded={open}>
+        已处理 {card.durationLabel}
+        <CaretRight className={`script-card-caret ${open ? "open" : ""}`} size={12} />
+      </button>
+      {open && card.thinkingSteps && card.thinkingSteps.length > 0 && (
+        <ul className="thinking-steps">
+          {card.thinkingSteps.map((step) => <li key={step}>{step}</li>)}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+// 输出文档卡片：点开可看脱敏摘要，"在飞书云文档中打开"仅作演示提示（不会跳转真实文档）。
+function DocumentCard({
+  name,
+  excerpt,
+  onOpen,
+}: {
+  name: string;
+  excerpt?: string[];
+  onOpen: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="document-card">
+      <button className="document-card-header" onClick={() => setOpen((current) => !current)} aria-expanded={open}>
+        <Article size={15} weight="duotone" />
+        <span className="document-card-name">{name}</span>
+        <CaretRight className={`script-card-caret ${open ? "open" : ""}`} size={13} />
+      </button>
+      {open && (
+        <div className="document-card-body">
+          {excerpt && excerpt.length > 0 ? (
+            <ul className="document-card-excerpt">{excerpt.map((line) => <li key={line}>{line}</li>)}</ul>
+          ) : (
+            <p className="document-card-placeholder">脱敏输入数据 · 仅用于本次分析上下文</p>
+          )}
+          <button className="text-action" onClick={onOpen}><ArrowUpRight size={13} /> 在飞书云文档中打开</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ScriptResultCard({
   card,
   expanded,
@@ -437,25 +549,14 @@ function ScriptResultCard({
 }) {
   const StageIcon = stageIcons[card.stage];
   return (
-    <div className={`script-card script-card-${card.stage} ${card.invoking ? "script-card-invoking" : ""}`}>
-      <button
-        className="script-card-summary"
-        onClick={card.invoking ? undefined : onToggle}
-        aria-expanded={expanded}
-        aria-busy={card.invoking}
-      >
+    <div className={`script-card script-card-${card.stage}`}>
+      <button className="script-card-summary" onClick={onToggle} aria-expanded={expanded}>
         <span className="script-card-stage-icon"><StageIcon size={13} weight="fill" /></span>
         <Tag tone={stageTagTone[card.stage]}>{card.stageLabel}</Tag>
-        <span className="script-card-summary-text">
-          {card.invoking ? `正在调用 ${card.invokeName ?? card.stageLabel}…` : card.summary}
-        </span>
-        {card.invoking ? (
-          <span className="script-card-spinner" aria-hidden="true" />
-        ) : (
-          <CaretRight className={`script-card-caret ${expanded ? "open" : ""}`} size={13} />
-        )}
+        <span className="script-card-summary-text">{card.summary}</span>
+        <CaretRight className={`script-card-caret ${expanded ? "open" : ""}`} size={13} />
       </button>
-      {!card.invoking && expanded && (
+      {expanded && (
         <div className="script-card-detail">
           {card.detail.kind === "table" && (
             <>
@@ -886,6 +987,7 @@ export default function Home() {
   const [showInboxPanel, setShowInboxPanel] = useState(false);
   const [showWorkflowPanel, setShowWorkflowPanel] = useState(false);
   const [showAgentNote, setShowAgentNote] = useState(false);
+  const inputRef = useRef<HTMLInputElement | null>(null);
 
   const composerTarget =
     selectedConversation === "agent"
@@ -956,20 +1058,24 @@ export default function Home() {
     setExpandedCards((current) => ({ ...current, [id]: !current[id] }));
   };
 
-  // 点击快捷指令 / 命中关键词时，先弹出“正在调用 xxx”的调用卡片（参照 Claude 的工具调用样式），
-  // 短暂延迟后再切换为结果卡片，而不是把文案直接写死成一句话。
+  // 点击快捷指令 / 任务只是把 "/skill-slug 预置话术" 填进输入框并聚焦（见 prefillComposer），
+  // 真正发送后才会走到这里：先弹出"正在思考…"的调用条（参照 Claude 的工具调用样式），
+  // 短暂延迟后折叠成"已处理 Xs"，再展开结果卡和产出文档，而不是把文案直接写死成一句话。
   const runScriptedInvocation = (node: ScriptNode, userText?: string) => {
     setActiveQuickTab(null);
     const stamp = Date.now();
     const userId = `${stamp}-user`;
     const assistantId = `${stamp}-assistant`;
+    const durationLabel = randomDurationLabel();
+    const thinkingSteps = node.thinkingSteps ?? defaultThinkingSteps(node.stage, node.quickLabel);
+
     setChatMessages((current) => [
       ...current,
-      { id: userId, role: "user" as MessageRole, text: userText ?? node.sampleInput },
+      { id: userId, role: "user" as MessageRole, text: userText ?? node.sampleInput, attachment: node.inputAttachment },
       {
         id: assistantId,
         role: "assistant" as MessageRole,
-        text: node.stage === "skill" ? "正在调用 Skill…" : node.stage === "workflow" ? "正在执行工作流…" : "正在调用 Agent…",
+        text: node.stage === "skill" ? "已收到，处理完成：" : node.stage === "workflow" ? "工作流已执行完成：" : "已完成：",
         card: {
           nodeId: node.id,
           stage: node.stage,
@@ -978,6 +1084,9 @@ export default function Home() {
           detail: node.detail,
           invoking: true,
           invokeName: node.quickLabel,
+          durationLabel,
+          thinkingSteps,
+          outputAttachment: node.outputAttachment,
         },
       },
     ]);
@@ -986,18 +1095,37 @@ export default function Home() {
       setChatMessages((current) =>
         current.map((message) =>
           message.id === assistantId && message.card
-            ? {
-                ...message,
-                text: node.stage === "skill" ? "已收到，处理完成：" : node.stage === "workflow" ? "工作流已执行完成：" : "已完成：",
-                card: { ...message.card, invoking: false },
-              }
+            ? { ...message, card: { ...message.card, invoking: false } }
             : message
         )
       );
+      if (node.id === "agent-daily-report") revealInbox();
     }, 900);
 
     const nodeIndex = scriptNodes.findIndex((item) => item.id === node.id);
     if (nodeIndex >= 0) setSequenceIndex((nodeIndex + 1) % scriptNodes.length);
+  };
+
+  // 快捷指令 / 任务点击后不再直接发送，只把 "/skill-slug 预置话术" 填进输入框并聚焦，
+  // 用户可以在发送前自己编辑（参照 Claude 点击调用后仍可自行输入的交互）。
+  const prefillComposer = (node: ScriptNode) => {
+    setActiveQuickTab(null);
+    setInput(`/${node.slug} ${node.sampleInput}`);
+    window.requestAnimationFrame(() => inputRef.current?.focus());
+  };
+
+  const showPermissionScope = () => {
+    setChatMessages((current) => [
+      ...current,
+      {
+        id: `${Date.now()}-assistant`,
+        role: "assistant",
+        text:
+          "知识与信息：训练知识有截止时间，太新的信息需要联网搜索补充；不知道的事我会直说，不会编造。\n" +
+          "访问边界：只能访问你所在飞书租户内、你有权限查看的文档和群聊；跨租户或你没有权限的资源我看不到。\n" +
+          "写操作：默认停在确认卡，不会自动发送消息或修改正式文档，等你确认后才会执行。",
+      },
+    ]);
   };
 
   const revealInbox = () => {
@@ -1187,7 +1315,6 @@ export default function Home() {
                 <button className={mode === "personal" ? "active" : ""} onClick={openPersonalMode}><ChatCircleDots size={15} weight="fill" />消息</button>
                 <button onClick={() => { openPersonalMode(); revealInbox(); showToast("晚间复盘计划已生成"); }}><ClipboardText size={15} weight="fill" />晚间复盘</button>
                 <button onClick={() => { openPersonalMode(); revealWorkflow(); showToast("工作流已开始：生成 PRD 草稿"); }}><Sparkle size={15} weight="fill" />工作流</button>
-                <button className={mode === "boss" ? "active" : ""} onClick={openBossMode}><ChartLineUp size={15} weight="fill" />老板驾驶舱</button>
                 <button className="agent-tab-more" onClick={() => showToast("更多智能体能力后续接入")} aria-label="更多功能"><Plus size={17} /></button>
               </nav>
             )}
@@ -1237,14 +1364,35 @@ export default function Home() {
                     <div className={`message-row ${message.role}`} key={message.id}>
                       {message.role === "assistant" && <AgentAvatar small />}
                       <div className="message-content">
-                        <div className={`message-bubble ${message.card ? "message-bubble-card" : ""}`}>{message.text}</div>
-                        {message.detail && <span className="message-detail">{message.detail}</span>}
-                        {message.card && (
-                          <ScriptResultCard
-                            card={message.card}
-                            expanded={!!expandedCards[message.id]}
-                            onToggle={() => toggleCard(message.id)}
-                          />
+                        {message.attachment && (
+                          <span className="input-attachment-chip"><Article size={12} weight="duotone" />{message.attachment}</span>
+                        )}
+                        {message.card ? (
+                          <>
+                            <ThinkingDisclosure card={message.card} />
+                            {!message.card.invoking && (
+                              <>
+                                <div className="message-bubble message-bubble-card">{message.text}</div>
+                                <ScriptResultCard
+                                  card={message.card}
+                                  expanded={!!expandedCards[message.id]}
+                                  onToggle={() => toggleCard(message.id)}
+                                />
+                                {message.card.outputAttachment && (
+                                  <DocumentCard
+                                    name={message.card.outputAttachment.name}
+                                    excerpt={message.card.outputAttachment.excerpt}
+                                    onOpen={() => showToast("演示：飞书云文档预览已打开（脱敏内容）")}
+                                  />
+                                )}
+                              </>
+                            )}
+                          </>
+                        ) : (
+                          <>
+                            <div className="message-bubble">{message.text}</div>
+                            {message.detail && <span className="message-detail">{message.detail}</span>}
+                          </>
                         )}
                       </div>
                     </div>
@@ -1278,6 +1426,10 @@ export default function Home() {
                     任务
                     <CaretDown size={11} className={activeQuickTab === "task" ? "open" : ""} />
                   </button>
+                  <button className="quick-instruction-toggle quick-permission-btn" onClick={showPermissionScope}>
+                    <ShieldCheck size={13} weight="fill" />
+                    查看权限范围
+                  </button>
                 </div>
                 {activeQuickTab === "skill" && (
                   <div className="quick-instruction-menu">
@@ -1285,7 +1437,7 @@ export default function Home() {
                       <button
                         key={node.id}
                         className="quick-instruction-item"
-                        onClick={() => runScriptedInvocation(node)}
+                        onClick={() => prefillComposer(node)}
                       >
                         <Tag tone="blue">{node.stageLabel}</Tag>
                         <span>{node.quickLabel}</span>
@@ -1299,7 +1451,7 @@ export default function Home() {
                       <button
                         key={node.id}
                         className="quick-instruction-item"
-                        onClick={() => runScriptedInvocation(node)}
+                        onClick={() => prefillComposer(node)}
                       >
                         <Tag tone={node.stage === "workflow" ? "purple" : "agent-tag"}>{node.stageLabel}</Tag>
                         <span>{node.quickLabel}</span>
@@ -1311,6 +1463,7 @@ export default function Home() {
             )}
             <div className="composer-input-row">
               <input
+                ref={inputRef}
                 value={input}
                 onChange={(event) => setInput(event.target.value)}
                 onKeyDown={handleInputKeyDown}
