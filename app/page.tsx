@@ -18,6 +18,7 @@ import {
   Bell,
   BookOpen,
   CalendarBlank,
+  CaretDoubleDown,
   CaretDown,
   CaretRight,
   ChartLineUp,
@@ -117,6 +118,7 @@ type ChatMessage = {
   detail?: string;
   card?: ScriptCardPayload;
   attachment?: string;
+  panel?: "evening-review";
 };
 
 type NavItem = {
@@ -228,10 +230,10 @@ const workflowSteps = [
 const businessLines = ["全部业务线", "国内酒店", "国际酒店", "民宿", "度假", "租车", "门票"];
 
 const businessRows = [
-  { line: "国内酒店", owner: "PM-01", meetings: 9, progress: 82, pass: "88.9%", tone: "blue" },
+  { line: "度假", owner: "PM-04", meetings: 9, progress: 82, pass: "88.9%", tone: "orange" },
   { line: "国际酒店", owner: "PM-02", meetings: 6, progress: 74, pass: "83.3%", tone: "purple" },
   { line: "民宿", owner: "PM-03", meetings: 4, progress: 65, pass: "75.0%", tone: "pink" },
-  { line: "度假", owner: "PM-04", meetings: 5, progress: 58, pass: "80.0%", tone: "orange" },
+  { line: "国内酒店", owner: "PM-01", meetings: 5, progress: 58, pass: "80.0%", tone: "blue" },
   { line: "租车", owner: "PM-05", meetings: 3, progress: 70, pass: "66.7%", tone: "teal" },
   { line: "门票", owner: "PM-06", meetings: 4, progress: 60, pass: "75.0%", tone: "navy" },
 ];
@@ -905,7 +907,7 @@ function InboxCard({
 }
 
 // 晚间复盘触发后，日报和收件箱要合并成同一份呈现，而不是把日报单独扔进聊天记录里，
-// 见 triggerEveningReview：两者一起放在 showInboxPanel 面板内。
+// 见 EveningReviewPanel：两者一起随触发它的那条消息内嵌渲染在聊天记录里。
 function DailyReportCard() {
   return (
     <section className="surface-card daily-report-card">
@@ -972,44 +974,23 @@ function WorkflowCard({
 }
 
 function PersonalWorkspace({
-  showInboxPanel,
   showWorkflowPanel,
-  reviewStarted,
   workflowStarted,
-  onStartReview,
   onRunWorkflow,
   onOpenBoss,
   onOpenSkills,
   onQuickTip,
-  onSelectSource,
 }: {
-  showInboxPanel: boolean;
   showWorkflowPanel: boolean;
-  reviewStarted: boolean;
   workflowStarted: boolean;
-  onStartReview: () => void;
   onRunWorkflow: () => void;
   onOpenBoss: () => void;
   onOpenSkills: () => void;
   onQuickTip: () => void;
-  onSelectSource: (label: string) => void;
 }) {
   return (
     <>
       <AgentWelcome onOpenBoss={onOpenBoss} onOpenSkills={onOpenSkills} onQuickTip={onQuickTip} />
-
-      {showInboxPanel && (
-        <>
-          <div className="workspace-intro-row">
-            <div><span className="section-kicker">PERSONAL PM DESK · 08/27</span><h3>今天，智能体先替你收好这些事</h3></div>
-            <ModeSwitch mode="personal" onChange={(next) => { if (next === "boss") onOpenBoss(); }} />
-          </div>
-
-          <SourcePills onSelect={onSelectSource} />
-          <DailyReportCard />
-          <InboxCard reviewStarted={reviewStarted} onStartReview={onStartReview} />
-        </>
-      )}
 
       {showWorkflowPanel && (
         <>
@@ -1020,14 +1001,40 @@ function PersonalWorkspace({
           <WorkflowCard workflowStarted={workflowStarted} onRun={onRunWorkflow} />
         </>
       )}
-
-      {showInboxPanel && (
-        <div className="daily-note">
-          <BookOpen size={15} weight="duotone" />
-          <span>晚间复盘会把 AI 可独立完成的任务放进收件箱，明早你只需要审核、修正和做判断。</span>
-        </div>
-      )}
     </>
+  );
+}
+
+// 晚间复盘触发后的完整板块（标题 + 来源 + 日报 + 收件箱 + 说明），现在作为聊天记录里
+// 的一条消息内容内嵌渲染，而不是固定摆在页面最上方——这样它会出现在触发它的那条
+// 消息应该在的位置，跟着对话顺序走，不会跑到之前/之后消息的前面去。
+function EveningReviewPanel({
+  reviewStarted,
+  onStartReview,
+  onOpenBoss,
+  onSelectSource,
+}: {
+  reviewStarted: boolean;
+  onStartReview: () => void;
+  onOpenBoss: () => void;
+  onSelectSource: (label: string) => void;
+}) {
+  return (
+    <div className="evening-review-panel">
+      <div className="workspace-intro-row">
+        <div><span className="section-kicker">PERSONAL PM DESK · 08/27</span><h3>今天，智能体先替你收好这些事</h3></div>
+        <ModeSwitch mode="personal" onChange={(next) => { if (next === "boss") onOpenBoss(); }} />
+      </div>
+
+      <SourcePills onSelect={onSelectSource} />
+      <DailyReportCard />
+      <InboxCard reviewStarted={reviewStarted} onStartReview={onStartReview} />
+
+      <div className="daily-note">
+        <BookOpen size={15} weight="duotone" />
+        <span>晚间复盘会把 AI 可独立完成的任务放进收件箱，明早你只需要审核、修正和做判断。</span>
+      </div>
+    </div>
   );
 }
 
@@ -1201,7 +1208,6 @@ export default function Home() {
   const [sequenceIndex, setSequenceIndex] = useState(0);
   const [agentNoteExpanded, setAgentNoteExpanded] = useState(false);
   const [activeQuickTab, setActiveQuickTab] = useState<"skill" | "task" | null>(null);
-  const [showInboxPanel, setShowInboxPanel] = useState(false);
   const [showWorkflowPanel, setShowWorkflowPanel] = useState(false);
   const [showAgentNote, setShowAgentNote] = useState(false);
   const [openDoc, setOpenDoc] = useState<OutputAttachment | null>(null);
@@ -1263,7 +1269,6 @@ export default function Home() {
     setSequenceIndex(0);
     setAgentNoteExpanded(false);
     setActiveQuickTab(null);
-    setShowInboxPanel(false);
     setShowWorkflowPanel(false);
     setShowAgentNote(false);
     setReviewStarted(false);
@@ -1359,11 +1364,6 @@ export default function Home() {
     window.requestAnimationFrame(() => inputRef.current?.focus());
   };
 
-  const revealInbox = () => {
-    setShowInboxPanel(true);
-    setReviewStarted(true);
-  };
-
   const revealWorkflow = () => {
     setShowWorkflowPanel(true);
     setWorkflowStarted(true);
@@ -1374,9 +1374,9 @@ export default function Home() {
     showToast("Agent 待办通知已出现");
   };
 
-  // 晚间复盘关键词命中：动效结束后，把原来的晚间复盘板块（收件箱等）和日报合并展开成
-  // 同一份呈现（见 DailyReportCard + InboxCard），不再把日报内容单独重复一份到聊天卡片里，
-  // 避免用户发送后只看到聊天区的日报卡、却要再往上翻才能看到收件箱板块。
+  // 晚间复盘关键词命中：动效结束后，把日报和收件箱合并展开成同一份呈现（见
+  // EveningReviewPanel），并且把这份呈现挂在触发它的这条消息上（message.panel），
+  // 让它按聊天记录本来的时间顺序出现，而不是固定摆在页面最上方盖过之前的对话。
   const eveningReviewKeywords = ["晚间复盘", "收件箱", "收好这些事", "今日日报", "查看日报"];
   const triggerEveningReview = (userText: string) => {
     setActiveQuickTab(null);
@@ -1392,7 +1392,7 @@ export default function Home() {
       {
         id: assistantId,
         role: "assistant" as MessageRole,
-        text: "晚间复盘已完成，今日日报和收件箱都放在了上方，请查看。",
+        text: "晚间复盘已完成，日报和收件箱如下：",
         card: {
           nodeId: "evening-review",
           stage: "agent",
@@ -1417,11 +1417,11 @@ export default function Home() {
       setChatMessages((current) =>
         current.map((message) =>
           message.id === assistantId && message.card
-            ? { ...message, card: { ...message.card, invoking: false } }
+            ? { ...message, card: { ...message.card, invoking: false }, panel: "evening-review" as const }
             : message
         )
       );
-      revealInbox();
+      setReviewStarted(true);
     }, 900);
   };
 
@@ -1450,7 +1450,6 @@ export default function Home() {
     setExpandedCards({});
     setSequenceIndex(0);
     setAgentNoteExpanded(false);
-    setShowInboxPanel(false);
     setShowWorkflowPanel(false);
     setShowAgentNote(false);
     setReviewStarted(false);
@@ -1633,16 +1632,12 @@ export default function Home() {
               <div className="date-divider"><span>8月27日</span></div>
               {mode === "personal" ? (
                 <PersonalWorkspace
-                  showInboxPanel={showInboxPanel}
                   showWorkflowPanel={showWorkflowPanel}
-                  reviewStarted={reviewStarted}
                   workflowStarted={workflowStarted}
-                  onStartReview={() => { setReviewStarted(true); showToast("晚间复盘计划已生成"); }}
                   onRunWorkflow={() => { setWorkflowStarted(true); showToast("工作流开始运行：先生成 PRD 草稿"); }}
                   onOpenBoss={openBossMode}
                   onOpenSkills={() => setActiveQuickTab("skill")}
                   onQuickTip={() => showToast("小技巧：输入关键词或点“快捷指令 / 任务”都能直接触发")}
-                  onSelectSource={(label) => showToast(`${label}：演示中显示已授权来源`)}
                 />
               ) : (
                 <>
@@ -1683,6 +1678,14 @@ export default function Home() {
                                       onOpen={() => setOpenDoc(card.outputAttachment!)}
                                     />
                                   )}
+                                  {message.panel === "evening-review" && (
+                                    <EveningReviewPanel
+                                      reviewStarted={reviewStarted}
+                                      onStartReview={() => { setReviewStarted(true); showToast("晚间复盘计划已生成"); }}
+                                      onOpenBoss={openBossMode}
+                                      onSelectSource={(label) => showToast(`${label}：演示中显示已授权来源`)}
+                                    />
+                                  )}
                                 </>
                               )}
                             </>
@@ -1700,9 +1703,8 @@ export default function Home() {
               )}
             </div>
             {showScrollToBottom && (
-              <button className="scroll-to-bottom-btn" onClick={scrollChatToBottom} aria-label="回到最新消息">
-                <CaretDown size={15} weight="bold" />
-                回到最新
+              <button className="scroll-to-bottom-btn" onClick={scrollChatToBottom} aria-label="回到最新消息" title="回到最新消息">
+                <CaretDoubleDown size={16} weight="bold" />
               </button>
             )}
           </div>

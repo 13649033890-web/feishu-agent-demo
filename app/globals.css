@@ -3126,20 +3126,20 @@ input:focus-visible {
 
 .scroll-to-bottom-btn {
   position: absolute;
-  bottom: 20px;
-  left: 50%;
+  top: 16px;
+  right: 16px;
   z-index: 5;
   display: flex;
   align-items: center;
-  gap: 5px;
-  padding: 7px 14px;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
   border: 1px solid var(--line-strong);
-  border-radius: 999px;
-  transform: translateX(-50%);
+  border-radius: 50%;
   background: #fff;
   box-shadow: 0 6px 18px rgba(30, 58, 105, 0.14);
   color: #3d434c;
-  font-size: 12px;
 }
 
 .scroll-to-bottom-btn:hover {
@@ -3170,6 +3170,15 @@ input:focus-visible {
   margin: 0 0 8px;
   color: #8d99a7;
   font-size: 10.5px;
+}
+
+/* 晚间复盘板块：现在内嵌渲染在触发它的那条聊天消息里，用 grid gap 统一间距，
+   不再依赖它以前作为 chat-stream 顶部固定区块时的外部排版。 */
+.evening-review-panel {
+  display: grid;
+  gap: 13px;
+  width: 100%;
+  margin-top: 2px;
 }
 
 /* 今日日报卡：晚间复盘触发后和收件箱一起展示，合并成同一份呈现内容。 */
