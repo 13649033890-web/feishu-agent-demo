@@ -54,6 +54,7 @@ import {
   UsersThree,
   VideoCamera,
   WarningCircle,
+  X,
 } from "@phosphor-icons/react";
 
 type Mode = "personal" | "boss";
@@ -146,7 +147,7 @@ const conversations = [
   },
   {
     id: "weekly",
-    title: "流量分发周报",
+    title: "产品运营周报",
     preview: "本周进展已整理，待你审核",
     time: "12:01",
     tone: "doc",
@@ -158,16 +159,16 @@ const conversations = [
     preview: "本次功能更新已同步",
     time: "11:10",
     tone: "label-orange",
-    label: "公共",
+    label: "公共品",
     status: "",
   },
   {
     id: "data",
-    title: "业务线协作群",
-    preview: "业务线日常协作与沟通",
+    title: "运营协作群",
+    preview: "运营团队日常协作与沟通",
     time: "昨天",
     tone: "label-blue",
-    label: "业务线协作",
+    label: "运营协作",
     status: "",
   },
   {
@@ -246,7 +247,7 @@ const skillNodes: ScriptNode[] = [
     stageLabel: "Skill",
     quickLabel: "AB 实验分析",
     slug: "AB-Skill",
-    sampleInput: "请你调用AB Skill，为我分析国内城市意图词条扩充实验数据，需要看整体和分业务线和老客与老客三个分类",
+    sampleInput: "请你调用AB Skill，为我分析本次实验数据，需要看整体和分业务线和老客与老客三个分类",
     keywords: ["AB 实验", "实验分析", "AB实验", "AB-Skill", "AB Skill"],
     summary: "AB 实验分析已完成",
     inputAttachment: "AB实验-分页面-分意图-分业务线-天_20260826160522.xlsx",
@@ -273,7 +274,7 @@ const skillNodes: ScriptNode[] = [
     id: "skill-sql",
     stage: "skill",
     stageLabel: "Skill",
-    quickLabel: "SQL取数",
+    quickLabel: "坑位取数",
     slug: "bigsearch-weekly-sql",
     sampleInput: "使用 $bigsearch-weekly-sql，更新2026.8.10截至8月26日的周 数据",
     keywords: ["取数", "坑位数据", "曝光点击", "bigsearch-weekly-sql"],
@@ -293,9 +294,9 @@ const skillNodes: ScriptNode[] = [
     id: "skill-prd",
     stage: "skill",
     stageLabel: "Skill",
-    quickLabel: "PRD",
+    quickLabel: "PRD 大纲",
     slug: "prd-outline",
-    sampleInput: "帮我完成热门推荐新增租车数据召回的需求文档",
+    sampleInput: "帮我起一版需求文档的大纲",
     keywords: ["PRD", "需求文档", "prd-outline"],
     summary: "PRD 大纲已生成",
     detail: {
@@ -506,7 +507,7 @@ function ThinkingDisclosure({ card }: { card: ScriptCardPayload }) {
   );
 }
 
-// 输出文档卡片：点开可看脱敏摘要，"在飞书云文档中打开"仅作演示提示（不会跳转真实文档）。
+// 输出文档卡片：点开可看脱敏摘要，"用 WPS 打开"会弹出仿 WPS 窗口的浮层展示正文摘要。
 function DocumentCard({
   name,
   excerpt,
@@ -531,9 +532,49 @@ function DocumentCard({
           ) : (
             <p className="document-card-placeholder">脱敏输入数据 · 仅用于本次分析上下文</p>
           )}
-          <button className="text-action" onClick={onOpen}><ArrowUpRight size={13} /> 在飞书云文档中打开</button>
+          <button className="text-action" onClick={onOpen}><ArrowUpRight size={13} /> 用 WPS 打开</button>
         </div>
       )}
+    </div>
+  );
+}
+
+// 模拟"跳转至 WPS"打开文档：演示环境没有真实文档服务，用一个仿 WPS 窗口的浮层
+// 展示脱敏摘要内容，让"打开文档"这个动作真正可交互，而不是只弹一个提示。
+function WpsViewerModal({ doc, onClose }: { doc: OutputAttachment; onClose: () => void }) {
+  return (
+    <div className="wps-modal-overlay" role="dialog" aria-modal="true" onClick={onClose}>
+      <div className="wps-modal" onClick={(event) => event.stopPropagation()}>
+        <div className="wps-modal-titlebar">
+          <div className="wps-modal-title">
+            <span className="wps-modal-icon">W</span>
+            <span className="wps-modal-name">{doc.name}</span>
+            <span className="wps-modal-app">WPS Office</span>
+          </div>
+          <button className="wps-modal-close" onClick={onClose} aria-label="关闭">
+            <X size={15} weight="bold" />
+          </button>
+        </div>
+        <div className="wps-modal-ribbon">
+          <span>开始</span><span>插入</span><span>页面布局</span><span>审阅</span><span>视图</span>
+        </div>
+        <div className="wps-modal-body">
+          <div className="wps-modal-page">
+            <h3>{doc.name.replace(/\.docx?$/i, "")}</h3>
+            {doc.excerpt && doc.excerpt.length > 0 ? (
+              <ul>
+                {doc.excerpt.map((line) => <li key={line}>{line}</li>)}
+              </ul>
+            ) : (
+              <p className="wps-modal-placeholder">脱敏输入数据 · 仅用于本次分析上下文</p>
+            )}
+          </div>
+        </div>
+        <div className="wps-modal-footer">
+          <ShieldCheck size={13} weight="fill" />
+          <span>演示态：以上为脱敏摘要，完整正文见飞书云文档（权限范围内可见）</span>
+        </div>
+      </div>
     </div>
   );
 }
@@ -987,6 +1028,7 @@ export default function Home() {
   const [showInboxPanel, setShowInboxPanel] = useState(false);
   const [showWorkflowPanel, setShowWorkflowPanel] = useState(false);
   const [showAgentNote, setShowAgentNote] = useState(false);
+  const [openDoc, setOpenDoc] = useState<OutputAttachment | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
   const composerTarget =
@@ -1114,20 +1156,6 @@ export default function Home() {
     window.requestAnimationFrame(() => inputRef.current?.focus());
   };
 
-  const showPermissionScope = () => {
-    setChatMessages((current) => [
-      ...current,
-      {
-        id: `${Date.now()}-assistant`,
-        role: "assistant",
-        text:
-          "知识与信息：训练知识有截止时间，太新的信息需要联网搜索补充；不知道的事我会直说，不会编造。\n" +
-          "访问边界：只能访问你所在飞书租户内、你有权限查看的文档和群聊；跨租户或你没有权限的资源我看不到。\n" +
-          "写操作：默认停在确认卡，不会自动发送消息或修改正式文档，等你确认后才会执行。",
-      },
-    ]);
-  };
-
   const revealInbox = () => {
     setShowInboxPanel(true);
     setReviewStarted(true);
@@ -1146,7 +1174,7 @@ export default function Home() {
   // Agent 层待办卡片、晚间复盘、工作流三块面板默认不展示，只有点对应入口或
   // 命中关键词才会出现（页面加载时保持空白会话，贴近真实飞书新会话的样子）。
   const dashboardTriggers: { keywords: string[]; reveal: () => void }[] = [
-    { keywords: ["晚间复盘", "收件箱"], reveal: revealInbox },
+    { keywords: ["晚间复盘", "收件箱", "收好这些事"], reveal: revealInbox },
     { keywords: ["运行工作流", "PM 工作流", "工作流编排"], reveal: revealWorkflow },
     { keywords: ["待办", "查看待办"], reveal: revealAgentNote },
   ];
@@ -1313,7 +1341,15 @@ export default function Home() {
             {selectedConversation === "agent" && (
               <nav className="agent-function-tabs" aria-label="智能体功能">
                 <button className={mode === "personal" ? "active" : ""} onClick={openPersonalMode}><ChatCircleDots size={15} weight="fill" />消息</button>
-                <button onClick={() => { openPersonalMode(); revealInbox(); showToast("晚间复盘计划已生成"); }}><ClipboardText size={15} weight="fill" />晚间复盘</button>
+                <button
+                  onClick={() => {
+                    openPersonalMode();
+                    setInput("今天，智能体先替你收好这些事");
+                    window.requestAnimationFrame(() => inputRef.current?.focus());
+                  }}
+                >
+                  <ClipboardText size={15} weight="fill" />晚间复盘
+                </button>
                 <button onClick={() => { openPersonalMode(); revealWorkflow(); showToast("工作流已开始：生成 PRD 草稿"); }}><Sparkle size={15} weight="fill" />工作流</button>
                 <button className="agent-tab-more" onClick={() => showToast("更多智能体能力后续接入")} aria-label="更多功能"><Plus size={17} /></button>
               </nav>
@@ -1360,43 +1396,46 @@ export default function Home() {
                   {showAgentNote && (
                     <AgentProactiveNote expanded={agentNoteExpanded} onToggle={() => setAgentNoteExpanded((current) => !current)} />
                   )}
-                  {chatMessages.map((message) => (
-                    <div className={`message-row ${message.role}`} key={message.id}>
-                      {message.role === "assistant" && <AgentAvatar small />}
-                      <div className="message-content">
-                        {message.attachment && (
-                          <span className="input-attachment-chip"><Article size={12} weight="duotone" />{message.attachment}</span>
-                        )}
-                        {message.card ? (
-                          <>
-                            <ThinkingDisclosure card={message.card} />
-                            {!message.card.invoking && (
-                              <>
-                                <div className="message-bubble message-bubble-card">{message.text}</div>
-                                <ScriptResultCard
-                                  card={message.card}
-                                  expanded={!!expandedCards[message.id]}
-                                  onToggle={() => toggleCard(message.id)}
-                                />
-                                {message.card.outputAttachment && (
-                                  <DocumentCard
-                                    name={message.card.outputAttachment.name}
-                                    excerpt={message.card.outputAttachment.excerpt}
-                                    onOpen={() => showToast("演示：飞书云文档预览已打开（脱敏内容）")}
+                  {chatMessages.map((message) => {
+                    const card = message.card;
+                    return (
+                      <div className={`message-row ${message.role}`} key={message.id}>
+                        {message.role === "assistant" && <AgentAvatar small />}
+                        <div className="message-content">
+                          {message.attachment && (
+                            <span className="input-attachment-chip"><Article size={12} weight="duotone" />{message.attachment}</span>
+                          )}
+                          {card ? (
+                            <>
+                              <ThinkingDisclosure card={card} />
+                              {!card.invoking && (
+                                <>
+                                  <div className="message-bubble message-bubble-card">{message.text}</div>
+                                  <ScriptResultCard
+                                    card={card}
+                                    expanded={!!expandedCards[message.id]}
+                                    onToggle={() => toggleCard(message.id)}
                                   />
-                                )}
-                              </>
-                            )}
-                          </>
-                        ) : (
-                          <>
-                            <div className="message-bubble">{message.text}</div>
-                            {message.detail && <span className="message-detail">{message.detail}</span>}
-                          </>
-                        )}
+                                  {card.outputAttachment && (
+                                    <DocumentCard
+                                      name={card.outputAttachment.name}
+                                      excerpt={card.outputAttachment.excerpt}
+                                      onOpen={() => setOpenDoc(card.outputAttachment!)}
+                                    />
+                                  )}
+                                </>
+                              )}
+                            </>
+                          ) : (
+                            <>
+                              <div className="message-bubble">{message.text}</div>
+                              {message.detail && <span className="message-detail">{message.detail}</span>}
+                            </>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -1426,7 +1465,7 @@ export default function Home() {
                     任务
                     <CaretDown size={11} className={activeQuickTab === "task" ? "open" : ""} />
                   </button>
-                  <button className="quick-instruction-toggle quick-permission-btn" onClick={showPermissionScope}>
+                  <button className="quick-instruction-toggle quick-permission-btn" onClick={openBossMode}>
                     <ShieldCheck size={13} weight="fill" />
                     查看权限范围
                   </button>
@@ -1493,6 +1532,7 @@ export default function Home() {
         </div>
       </section>
 
+      {openDoc && <WpsViewerModal doc={openDoc} onClose={() => setOpenDoc(null)} />}
       {toast && <div className="toast" role="status"><CheckCircle size={16} weight="fill" />{toast}</div>}
     </main>
   );

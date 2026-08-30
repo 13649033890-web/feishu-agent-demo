@@ -2995,7 +2995,142 @@ input:focus-visible {
   margin-top: 9px;
 }
 
-/* "查看权限范围"按钮：和快捷指令 / 任务并排，但不是下拉菜单，点了直接出说明。 */
+/* "查看权限范围"按钮：和快捷指令 / 任务并排，点击弹出老板驾驶舱界面。 */
 .quick-permission-btn {
   color: #647388;
+}
+
+/* 仿 WPS 打开文档的浮层：橙红色系呼应 WPS Office 视觉，标题栏 + 功能区 + 纸张正文。 */
+.wps-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  background: rgba(20, 22, 26, 0.45);
+}
+
+.wps-modal {
+  display: flex;
+  flex-direction: column;
+  width: min(560px, 100%);
+  max-height: min(640px, 100%);
+  overflow: hidden;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.3);
+}
+
+.wps-modal-titlebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: linear-gradient(135deg, #ff7a45, #e8412c);
+  color: #fff;
+}
+
+.wps-modal-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.wps-modal-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.25);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.wps-modal-name {
+  overflow: hidden;
+  font-size: 12.5px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wps-modal-app {
+  flex-shrink: 0;
+  font-size: 11px;
+  opacity: 0.85;
+}
+
+.wps-modal-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  background: transparent;
+  color: #fff;
+}
+
+.wps-modal-close:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.wps-modal-ribbon {
+  display: flex;
+  gap: 16px;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--line);
+  background: #fbf7f5;
+  color: #9a8a85;
+  font-size: 11.5px;
+}
+
+.wps-modal-body {
+  overflow-y: auto;
+  padding: 20px;
+  background: #efe5e0;
+}
+
+.wps-modal-page {
+  min-height: 320px;
+  padding: 28px 30px;
+  border-radius: 4px;
+  background: #fff;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.08);
+}
+
+.wps-modal-page h3 {
+  margin: 0 0 16px;
+  color: #262b33;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.wps-modal-page ul {
+  margin: 0;
+  padding-left: 20px;
+  color: #3d434c;
+  font-size: 13px;
+  line-height: 2;
+}
+
+.wps-modal-placeholder {
+  margin: 0;
+  color: #8d99a7;
+  font-size: 12.5px;
+}
+
+.wps-modal-footer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  border-top: 1px solid var(--line);
+  color: #8d99a7;
+  font-size: 11px;
 }
