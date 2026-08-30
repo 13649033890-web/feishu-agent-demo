@@ -3145,3 +3145,80 @@ input:focus-visible {
 .scroll-to-bottom-btn:hover {
   background: #f7f9fc;
 }
+
+/* SQL 结果展示：坑位取数 Skill 的回答改成给 SQL 而不是假装跑出结果表，
+   以及数据一览表"查看口径"展开的真实取数 SQL，共用同一套代码块样式。 */
+.script-card-sql {
+  overflow-x: auto;
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: #1f2430;
+  color: #d8e0ee;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 11px;
+  line-height: 1.7;
+  white-space: pre;
+}
+
+.table-sql-ref {
+  padding: 12px 18px 16px;
+  border-top: 1px solid #eef2f5;
+}
+
+.table-sql-ref-note {
+  margin: 0 0 8px;
+  color: #8d99a7;
+  font-size: 10.5px;
+}
+
+/* 今日日报卡：晚间复盘触发后和收件箱一起展示，合并成同一份呈现内容。 */
+.daily-report-card .card-heading {
+  margin-bottom: 10px;
+}
+
+.daily-report-outline {
+  margin: 0;
+}
+
+/* 业务线筛选下拉：数据一览表里"全部业务线"从静态按钮换成真实可选的下拉菜单。 */
+.line-filter-wrap {
+  position: relative;
+}
+
+.line-filter-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 8;
+  display: grid;
+  gap: 2px;
+  min-width: 140px;
+  padding: 6px;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 12px 28px rgba(30, 58, 105, 0.14);
+}
+
+.line-filter-item {
+  padding: 7px 10px;
+  border-radius: 7px;
+  background: transparent;
+  color: #465466;
+  font-size: 12px;
+  text-align: left;
+}
+
+.line-filter-item:hover {
+  background: #f4f7fb;
+}
+
+.line-filter-item.active {
+  background: var(--blue-soft);
+  color: var(--blue);
+  font-weight: 600;
+}
+
+.line-pink { background: #d8749f; }
+.line-navy { background: #3d5a80; }
