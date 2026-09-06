@@ -56,7 +56,7 @@ export default function FeishuSidebar() {
     <aside className="conversation-pane fs-conversations" aria-label="会话列表">
       <div className="fs-list-heading"><ListDashes size={19} /><h1>消息</h1></div>
       <div className="fs-shortcuts" aria-label="常用会话">
-        {[['landscape', '张家琴zh'], ['ma', '马树更'], ['landscape', '爆炒空心']].map(([name, label], index) =>
+        {[['landscape', '张家琴zh'], ['ma', '马树更'], ['landscape', '爆炒空心菜']].map(([name, label], index) =>
           <div className={`fs-shortcut${index === 2 ? ' fs-shortcut-current' : ''}`} key={label}>
             <Avatar name={name} label={`${label}头像`} /><span>{label}</span>
           </div>)}

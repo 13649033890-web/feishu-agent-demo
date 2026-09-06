@@ -516,9 +516,7 @@ function randomDurationLabel(): string {
 function AgentAvatar({ small = false }: { small?: boolean }) {
   return (
     <span className={`agent-avatar ${small ? "agent-avatar-small" : ""}`} aria-hidden="true">
-      <span className="avatar-sun" />
-      <span className="avatar-horizon" />
-      <Sparkle className="avatar-sparkle" size={small ? 12 : 18} weight="fill" />
+      <img src={`${import.meta.env.BASE_URL}feishu-avatars/landscape.png`} alt="" className="agent-avatar-image" />
     </span>
   );
 }
@@ -757,7 +755,7 @@ function AgentProactiveNote({ expanded, onToggle }: { expanded: boolean; onToggl
   );
 }
 
-function ModeSwitch({ mode, onChange }: { mode: Mode; onChange: (mode: Mode) => void }) {
+function ModeSwitch({ mode, onChange, showBoss = true }: { mode: Mode; onChange: (mode: Mode) => void; showBoss?: boolean }) {
   return (
     <div className="mode-switch" role="tablist" aria-label="智能体工作视角">
       <button
@@ -769,7 +767,7 @@ function ModeSwitch({ mode, onChange }: { mode: Mode; onChange: (mode: Mode) => 
         <House size={15} weight="duotone" />
         个人管家
       </button>
-      <button
+      {showBoss && <button
         role="tab"
         aria-selected={mode === "boss"}
         className={mode === "boss" ? "active" : ""}
@@ -777,7 +775,7 @@ function ModeSwitch({ mode, onChange }: { mode: Mode; onChange: (mode: Mode) => 
       >
         <ChartLineUp size={15} weight="duotone" />
         数据一览表
-      </button>
+      </button>}
     </div>
   );
 }
@@ -989,19 +987,17 @@ function PersonalWorkspace({
 function EveningReviewPanel({
   reviewStarted,
   onStartReview,
-  onOpenBoss,
   onSelectSource,
 }: {
   reviewStarted: boolean;
   onStartReview: () => void;
-  onOpenBoss: () => void;
   onSelectSource: (label: string) => void;
 }) {
   return (
     <div className="evening-review-panel">
       <div className="workspace-intro-row">
         <div><span className="section-kicker">PERSONAL PM DESK · 08/27</span><h3>今天，智能体先替你收好这些事</h3></div>
-        <ModeSwitch mode="personal" onChange={(next) => { if (next === "boss") onOpenBoss(); }} />
+        <ModeSwitch mode="personal" onChange={() => {}} showBoss={false} />
       </div>
 
       <SourcePills onSelect={onSelectSource} />
@@ -1199,12 +1195,12 @@ export default function Home() {
   useEffect(() => {
     const el = chatBodyRef.current;
     if (!el) return;
-    if (chatMessages.length === 0) {
+    if (mode === "boss" || chatMessages.length === 0) {
       el.scrollTop = 0;
     } else {
       el.scrollTo({ top: el.scrollHeight, behavior: "auto" });
     }
-  }, [chatMessages.length]);
+  }, [chatMessages.length, mode]);
 
   const scrollChatToBottom = () => {
     chatBodyRef.current?.scrollTo({ top: chatBodyRef.current.scrollHeight, behavior: "auto" });
@@ -1414,6 +1410,16 @@ export default function Home() {
       return;
     }
 
+    if (/需求fr/i.test(text)) {
+      setChatMessages((current) => [...current, { id: `${Date.now()}-user`, role: "user", text }]);
+      setActiveQuickTab(null);
+      setShowScrollToBottom(false);
+      setInput("");
+      setAttachedFile("");
+      openBossMode();
+      return;
+    }
+
     if (text === "继续") {
       forceAdvance();
       setInput("");
@@ -1555,7 +1561,6 @@ export default function Home() {
                                     <EveningReviewPanel
                                       reviewStarted={reviewStarted}
                                       onStartReview={() => { setReviewStarted(true); showToast("晚间复盘计划已生成"); }}
-                                      onOpenBoss={openBossMode}
                                       onSelectSource={(label) => showToast(`${label}：演示中显示已授权来源`)}
                                     />
                                   )}
