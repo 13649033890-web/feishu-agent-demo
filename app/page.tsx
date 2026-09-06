@@ -1,5 +1,7 @@
 "use client";
 
+import FeishuSidebar from "./feishu-sidebar";
+
 import {
   type ChangeEvent,
   type ElementType,
@@ -17,19 +19,16 @@ import {
   At,
   Bell,
   BookOpen,
-  CalendarBlank,
   CaretDoubleDown,
   CaretDown,
   CaretRight,
   ChartLineUp,
   Check,
   CheckCircle,
-  CheckSquare,
   ChatCircleDots,
   ClipboardText,
   ClockCounterClockwise,
   Database,
-  DotsThree,
   DotsThreeVertical,
   DownloadSimple,
   Eye,
@@ -49,8 +48,6 @@ import {
   ShieldCheck,
   Smiley,
   Sparkle,
-  Star,
-  Table,
   TextAa,
   TrendUp,
   UsersThree,
@@ -120,25 +117,6 @@ type ChatMessage = {
   attachment?: string;
   panel?: "evening-review";
 };
-
-type NavItem = {
-  id: NavId;
-  label: string;
-  icon: ElementType;
-  badge?: string;
-};
-
-const navItems: NavItem[] = [
-  { id: "messages", label: "消息", icon: ChatCircleDots, badge: "8" },
-  { id: "docs", label: "云文档", icon: Article },
-  { id: "calendar", label: "日历", icon: CalendarBlank },
-  { id: "tables", label: "多维表格", icon: Table },
-  { id: "tasks", label: "任务", icon: CheckSquare },
-  { id: "contacts", label: "联系人", icon: UsersThree },
-  { id: "meetings", label: "视频会议", icon: VideoCamera },
-  { id: "favorites", label: "收藏", icon: Star },
-  { id: "more", label: "更多", icon: DotsThree },
-];
 
 const conversations = [
   {
@@ -1194,7 +1172,7 @@ function ConversationPreview({ onBack }: { onBack: () => void }) {
 }
 
 export default function Home() {
-  const [activeNav, setActiveNav] = useState<NavId>("messages");
+  const [, setActiveNav] = useState<NavId>("messages");
   const [selectedConversation, setSelectedConversation] = useState("agent");
   const [mode, setMode] = useState<Mode>("personal");
   const [reviewStarted, setReviewStarted] = useState(false);
@@ -1261,41 +1239,6 @@ export default function Home() {
     setMode("personal");
     setActiveNav("messages");
     setSelectedConversation("agent");
-  };
-
-  const clearAgentConversation = () => {
-    setChatMessages([]);
-    setExpandedCards({});
-    setSequenceIndex(0);
-    setAgentNoteExpanded(false);
-    setActiveQuickTab(null);
-    setShowWorkflowPanel(false);
-    setShowAgentNote(false);
-    setReviewStarted(false);
-    setWorkflowStarted(false);
-    setSendStatus("idle");
-    setInput("");
-    setAttachedFile("");
-  };
-
-  const handleNavClick = (item: NavItem) => {
-    setActiveNav(item.id);
-    if (item.id === "messages") {
-      openPersonalMode();
-      clearAgentConversation();
-      showToast("会话已清空，可以重新开始演示");
-      return;
-    }
-    if (item.id === "tables") {
-      openBossMode();
-      return;
-    }
-    showToast(`${item.label}已保留飞书原生入口，智能体演示聚焦于消息会话`);
-  };
-
-  const handleConversationClick = (conversationId: string) => {
-    setSelectedConversation(conversationId);
-    if (conversationId !== "agent") showToast("该会话使用脱敏占位内容，智能体能力只在 CLI 会话中展示");
   };
 
   const handleFilePick = (event: ChangeEvent<HTMLInputElement>) => {
@@ -1517,77 +1460,7 @@ export default function Home() {
 
   return (
     <main className="app-frame">
-      <aside className="app-rail">
-        <button className="profile-orb" aria-label="打开个人菜单" onClick={() => showToast("演示账号：产品经理 · 工作台")}>Z</button>
-        <button className="rail-add" aria-label="新建" onClick={() => showToast("新建：可发起会话、文档或日程")}>
-          <Plus size={15} weight="bold" />
-        </button>
-        <button className="rail-search" onClick={() => showToast("搜索已打开：可搜索会话、文档和智能体")} aria-label="搜索">
-          <MagnifyingGlass size={17} weight="bold" />
-          <span>搜索 (Ctrl+K)</span>
-        </button>
-
-        <nav className="rail-nav" aria-label="应用导航">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            return (
-              <button
-                key={item.id}
-                className={`rail-item ${activeNav === item.id ? "active" : ""}`}
-                onClick={() => handleNavClick(item)}
-                aria-current={activeNav === item.id ? "page" : undefined}
-              >
-                <span className="rail-icon-wrap"><Icon size={18} weight={activeNav === item.id ? "fill" : "regular"} /></span>
-                <span className="rail-item-label">{item.label}</span>
-                {item.badge && <b className="rail-badge">{item.badge}</b>}
-              </button>
-            );
-          })}
-        </nav>
-
-        <div className="rail-bottom">
-          <button className="rail-item" onClick={() => showToast("近期下载：暂无新文件")}><span className="rail-icon-wrap"><DownloadSimple size={20} weight="duotone" /></span><span>下载</span></button>
-          <button className="rail-item" onClick={() => showToast("工作台设置已打开")}><span className="rail-icon-wrap"><Gear size={20} weight="duotone" /></span><span>设置</span></button>
-        </div>
-      </aside>
-
-      <aside className="conversation-pane">
-        <div className="conversation-header">
-          <div className="conversation-title"><ChatCircleDots size={25} weight="duotone" /><h1>消息</h1><span className="unread-badge">8</span></div>
-          <div className="conversation-actions"><button className="icon-button" aria-label="新建会话" onClick={() => showToast("新会话已准备：选择一个智能体开始")}><Plus size={20} weight="bold" /></button><button className="icon-button" aria-label="更多消息设置" onClick={() => showToast("消息筛选已打开")}><DotsThreeVertical size={19} /></button></div>
-        </div>
-
-        <div className="conversation-tabs" aria-label="快捷会话">
-          <button className="quick-contact" onClick={() => handleConversationClick("agent")}>
-            <span className="quick-contact-avatar quick-contact-scenery" />
-            <span>小张</span>
-          </button>
-          <button className="quick-contact" onClick={() => handleConversationClick("weekly")}>
-            <span className="quick-contact-avatar quick-contact-portrait" />
-            <span>小朱</span>
-          </button>
-          <button className="quick-contact" onClick={() => handleConversationClick("agent")}>
-            <span className="quick-contact-avatar quick-contact-agent" />
-            <span>张家琴的智能体</span>
-          </button>
-        </div>
-
-        <div className="conversation-list">
-          {conversations.map((conversation) => (
-            <button
-              key={conversation.id}
-              className={`conversation-item ${selectedConversation === conversation.id ? "selected" : ""}`}
-              onClick={() => handleConversationClick(conversation.id)}
-            >
-              <ConversationAvatar tone={conversation.tone} label={conversation.label} />
-              <span className="conversation-copy"><strong>{conversation.title}</strong><span>{conversation.preview}</span></span>
-              <span className="conversation-meta"><time>{conversation.time}</time>{conversation.status && <Tag tone={conversation.tagTone ?? "agent-tag"}>{conversation.status}</Tag>}</span>
-            </button>
-          ))}
-        </div>
-
-        <div className="conversation-footer"><span className="online-dot" /> 已同步 6 个会话 <button onClick={() => showToast("同步完成")}>刷新</button></div>
-      </aside>
+      <FeishuSidebar />
 
       <section className="chat-shell">
         <header className="chat-topbar">
