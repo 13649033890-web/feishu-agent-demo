@@ -115,7 +115,7 @@ type ChatMessage = {
   detail?: string;
   card?: ScriptCardPayload;
   attachment?: string;
-  panel?: "evening-review";
+  panel?: "evening-review" | "data-overview";
 };
 
 const conversations = [
@@ -611,7 +611,7 @@ function DocumentCard({
   excerpt?: string[];
   onOpen: () => void;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(true);
   return (
     <div className="document-card">
       <button className="document-card-header" onClick={() => setOpen((current) => !current)} aria-expanded={open}>
@@ -1167,6 +1167,15 @@ function ConversationPreview({ onBack }: { onBack: () => void }) {
   );
 }
 
+function ChatDataOverview() {
+  const [sendStatus, setSendStatus] = useState<SendStatus>("idle");
+  return <div className="chat-data-overview"><BossDashboard
+    sendStatus={sendStatus}
+    onPrepareSend={() => setSendStatus("preview")}
+    onConfirmSend={() => setSendStatus("confirmed")}
+  /></div>;
+}
+
 export default function Home() {
   const [, setActiveNav] = useState<NavId>("messages");
   const [selectedConversation, setSelectedConversation] = useState("agent");
@@ -1200,7 +1209,7 @@ export default function Home() {
     } else {
       el.scrollTo({ top: el.scrollHeight, behavior: "auto" });
     }
-  }, [chatMessages.length, mode]);
+  }, [chatMessages, mode]);
 
   const scrollChatToBottom = () => {
     chatBodyRef.current?.scrollTo({ top: chatBodyRef.current.scrollHeight, behavior: "auto" });
@@ -1245,7 +1254,7 @@ export default function Home() {
   };
 
   const toggleCard = (id: string) => {
-    setExpandedCards((current) => ({ ...current, [id]: !current[id] }));
+    setExpandedCards((current) => ({ ...current, [id]: !(current[id] ?? true) }));
   };
 
   // 点击快捷指令 / 任务只是把 "/skill-slug 预置话术" 填进输入框并聚焦（见 prefillComposer），
@@ -1411,12 +1420,16 @@ export default function Home() {
     }
 
     if (/需求fr/i.test(text)) {
-      setChatMessages((current) => [...current, { id: `${Date.now()}-user`, role: "user", text }]);
+      const stamp = Date.now();
+      setChatMessages((current) => [...current,
+        { id: `${stamp}-user`, role: "user", text },
+        { id: `${stamp}-assistant`, role: "assistant", text: "数据一览表如下：", panel: "data-overview" },
+      ]);
       setActiveQuickTab(null);
       setShowScrollToBottom(false);
       setInput("");
       setAttachedFile("");
-      openBossMode();
+      openPersonalMode();
       return;
     }
 
@@ -1533,7 +1546,7 @@ export default function Home() {
                   {chatMessages.map((message) => {
                     const card = message.card;
                     return (
-                      <div className={`message-row ${message.role}`} key={message.id}>
+                      <div className={`message-row ${message.role}${message.panel === "data-overview" ? " message-row-dashboard" : ""}`} key={message.id}>
                         {message.role === "assistant" && <AgentAvatar small />}
                         <div className="message-content">
                           {message.attachment && (
@@ -1547,7 +1560,7 @@ export default function Home() {
                                   <div className="message-bubble message-bubble-card">{message.text}</div>
                                   <ScriptResultCard
                                     card={card}
-                                    expanded={!!expandedCards[message.id]}
+                                    expanded={expandedCards[message.id] ?? true}
                                     onToggle={() => toggleCard(message.id)}
                                   />
                                   {card.outputAttachment && (
@@ -1571,6 +1584,7 @@ export default function Home() {
                             <>
                               <div className="message-bubble">{message.text}</div>
                               {message.detail && <span className="message-detail">{message.detail}</span>}
+                              {message.panel === "data-overview" && <ChatDataOverview />}
                             </>
                           )}
                         </div>
@@ -1589,7 +1603,6 @@ export default function Home() {
         )}
 
         <div className="composer-wrap">
-          <div className="composer">
             {mode === "personal" && (
               <div className="quick-instruction-bar">
                 <div className="quick-tab-row">
@@ -1642,6 +1655,7 @@ export default function Home() {
                 )}
               </div>
             )}
+          <div className="composer">
             <div className="composer-input-row">
               <input
                 ref={inputRef}
@@ -1669,8 +1683,8 @@ export default function Home() {
                 </div>
               </div>
             </div>
-            <div className="composer-footer"><span>{attachedFile ? `已添加：${attachedFile}` : "Enter 发送 · Shift + Enter 换行"}</span><span><ShieldCheck size={13} /> 演示模式 · 不会真实读取或发送</span></div>
           </div>
+          <div className="composer-footer"><span>{attachedFile ? `已添加：${attachedFile}` : "Enter 发送 · Shift + Enter 换行"}</span><span><ShieldCheck size={13} /> 演示模式 · 不会真实读取或发送</span></div>
         </div>
       </section>
 

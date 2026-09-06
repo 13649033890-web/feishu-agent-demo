@@ -2611,8 +2611,21 @@ input:focus-visible {
 .chat-body { background: #fff; }
 .chat-stream { width: min(980px, calc(100% - 38px)); padding-top: 14px; }
 .date-divider { margin-bottom: 14px; }
-.composer-wrap { padding: 0 21px 18px; background: #fff; }
-.composer { border-radius: 9px; box-shadow: none; }
+.composer-wrap { padding: 22px 21px 18px; background: #fff; }
+.composer { border-radius: 9px; box-shadow: none; display: flex; align-items: center; gap: 8px; padding: 8px 10px; }
+.composer-wrap > .quick-instruction-bar { width: min(980px, 100%); margin: 0 auto 8px; }
+.composer .composer-input-row { flex: 1; min-width: 0; padding: 0; }
+.composer .composer-tools { flex-shrink: 0; padding: 0; }
+.composer-footer { width: min(980px, 100%); margin: 0 auto; }
+.message-row-dashboard { width: 100%; max-width: 100%; }
+.message-row-dashboard > .message-content { flex: 1; min-width: 0; }
+.chat-data-overview { min-width: 0; }
+.chat-data-overview .mode-switch { display: none; }
+@media (max-width: 980px) {
+  .composer { flex-wrap: wrap; }
+  .composer .composer-input-row { flex-basis: 100%; }
+  .composer .composer-tools { width: 100%; }
+}
 
 @media (max-width: 980px) {
   .app-frame { grid-template-columns: 126px 260px minmax(0, 1fr); }
