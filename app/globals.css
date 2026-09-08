@@ -2011,6 +2011,15 @@ input:focus-visible {
   box-shadow: 0 14px 30px rgba(33, 63, 107, 0.14);
 }
 
+.quick-instruction-menu::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 100%;
+  height: 6px;
+}
+
 .quick-instruction-item {
   display: flex;
   align-items: center;

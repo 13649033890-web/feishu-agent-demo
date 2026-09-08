@@ -116,6 +116,7 @@ type ChatMessage = {
   card?: ScriptCardPayload;
   attachment?: string;
   panel?: "evening-review" | "data-overview";
+  pending?: boolean;
 };
 
 const conversations = [
@@ -1198,16 +1199,18 @@ export default function Home() {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const chatBodyRef = useRef<HTMLDivElement | null>(null);
 
-  // 新消息到达时自动跳到底部，不管用户之前把对话往上翻到了哪里；
-  // 但空会话（首次进入 / 重置后）要停在顶部，不能被这条效果带着往下滚，
-  // 否则欢迎卡的开头会被顶到视口外，需要用户手动往上滑才能看到。
+  // 新回答出现或完成时定位到回答开头，不自动跳到长回答底部。
   useEffect(() => {
     const el = chatBodyRef.current;
     if (!el) return;
     if (mode === "boss" || chatMessages.length === 0) {
       el.scrollTop = 0;
     } else {
-      el.scrollTo({ top: el.scrollHeight, behavior: "auto" });
+      const latestReply = [...chatMessages].reverse().find((message) => message.role === "assistant");
+      const reply = latestReply && el.querySelector<HTMLElement>(`[data-message-id="${latestReply.id}"]`);
+      if (reply) {
+        el.scrollTo({ top: el.scrollTop + reply.getBoundingClientRect().top - el.getBoundingClientRect().top, behavior: "auto" });
+      }
     }
   }, [chatMessages, mode]);
 
@@ -1298,7 +1301,7 @@ export default function Home() {
             : message
         )
       );
-    }, 900);
+    }, 3000);
 
     const nodeIndex = scriptNodes.findIndex((item) => item.id === node.id);
     if (nodeIndex >= 0) setSequenceIndex((nodeIndex + 1) % scriptNodes.length);
@@ -1370,7 +1373,7 @@ export default function Home() {
         )
       );
       setReviewStarted(true);
-    }, 900);
+    }, 3000);
   };
 
   // Agent 层待办卡片、工作流面板默认不展示，只有点对应入口或命中关键词才会出现
@@ -1423,8 +1426,13 @@ export default function Home() {
       const stamp = Date.now();
       setChatMessages((current) => [...current,
         { id: `${stamp}-user`, role: "user", text },
-        { id: `${stamp}-assistant`, role: "assistant", text: "数据一览表如下：", panel: "data-overview" },
+        { id: `${stamp}-assistant`, role: "assistant", text: "数据一览表如下：", panel: "data-overview", pending: true },
       ]);
+      window.setTimeout(() => {
+        setChatMessages((current) => current.map((message) =>
+          message.id === `${stamp}-assistant` ? { ...message, pending: false } : message
+        ));
+      }, 3000);
       setActiveQuickTab(null);
       setShowScrollToBottom(false);
       setInput("");
@@ -1546,13 +1554,13 @@ export default function Home() {
                   {chatMessages.map((message) => {
                     const card = message.card;
                     return (
-                      <div className={`message-row ${message.role}${message.panel === "data-overview" ? " message-row-dashboard" : ""}`} key={message.id}>
+                      <div className={`message-row ${message.role}${message.panel === "data-overview" ? " message-row-dashboard" : ""}`} key={message.id} data-message-id={message.id}>
                         {message.role === "assistant" && <AgentAvatar small />}
                         <div className="message-content">
                           {message.attachment && (
                             <span className="input-attachment-chip"><Article size={12} weight="duotone" />{message.attachment}</span>
                           )}
-                          {card ? (
+                          {message.pending ? <div className="thinking-disclosure thinking-disclosure-active"><span className="thinking-live"><span className="thinking-dot" aria-hidden="true" />正在思考…</span></div> : card ? (
                             <>
                               <ThinkingDisclosure card={card} />
                               {!card.invoking && (
@@ -1605,6 +1613,7 @@ export default function Home() {
         <div className="composer-wrap">
             {mode === "personal" && (
               <div className="quick-instruction-bar">
+                <div style={{ position: "relative", width: "fit-content" }} onMouseLeave={() => setActiveQuickTab(null)}>
                 <div className="quick-tab-row">
                   <button
                     className={`quick-instruction-toggle ${activeQuickTab === "skill" ? "active" : ""}`}
@@ -1653,6 +1662,7 @@ export default function Home() {
                     ))}
                   </div>
                 )}
+                </div>
               </div>
             )}
           <div className="composer">
